@@ -423,14 +423,15 @@ function computeUnlocked(habits, logs) {
 // ─── XP / Leveling System ───────────────────────────────────────────
 function xpForLevel(lvl) { return lvl * 500; }
 function computeXPLevel(totalXp) {
+  const safeXp = (typeof totalXp === 'number' && isFinite(totalXp) && totalXp >= 0) ? Math.floor(totalXp) : 0;
   let level = 1, spent = 0;
-  while (true) {
+  while (level < 9999) {
     const needed = xpForLevel(level);
-    if (spent + needed > totalXp) break;
+    if (spent + needed > safeXp) break;
     spent += needed;
     level++;
   }
-  return { level, xpInLevel: totalXp - spent, xpForNext: xpForLevel(level) };
+  return { level, xpInLevel: safeXp - spent, xpForNext: xpForLevel(level) };
 }
 function getCyberRank(level) {
   if (level >= 51) return 'Высший Разум (SkyNet)';
@@ -918,12 +919,15 @@ function AuthGate() {
 
       let ud;
       if (data) {
+        // Merge profile: defaults first, then Supabase data on top
+        // This guarantees xp/level always exist for returning users
+        const profileDefaults = { xp: 0, level: 1 };
         ud = {
-          logs:         data.logs         || {},
-          profile:      data.profile      || getProfile(),
-          settings:     data.settings     || getSettings(),
-          habits:       data.habits       || getHabits(),
-          achievements: data.achievements || {},
+          logs:         data.logs                              || {},
+          profile:      { ...profileDefaults, ...(data.profile || {}) },
+          settings:     data.settings                         || getSettings(),
+          habits:       data.habits                           || getHabits(),
+          achievements: data.achievements                     || {},
         };
       } else {
         // New user — seed with any existing local data, then insert
@@ -945,14 +949,18 @@ function AuthGate() {
       setInitialData(ud);
     } catch(e) {
       console.error('[AuthGate] load error:', e);
-      // Graceful fallback: use whatever is in localStorage
+      // Graceful fallback: use localStorage (works offline / after network error)
       setInitialData({
-        logs: getAllLogs(), profile: getProfile(),
-        settings: getSettings(), habits: getHabits(),
+        logs:         getAllLogs(),
+        profile:      { xp: 0, level: 1, ...getProfile() },
+        settings:     getSettings(),
+        habits:       getHabits(),
         achievements: getAchievements(),
       });
+    } finally {
+      // Always unblock the loading screen — no more infinite spinner
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   useEffect(() => {
