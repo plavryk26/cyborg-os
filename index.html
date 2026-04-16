@@ -256,6 +256,21 @@
     .xp-next-bar-fill{height:100%;border-radius:100px;background:linear-gradient(90deg,var(--cyan),var(--lime));}
     @keyframes xp-pop{0%{transform:translateY(0) scale(1);opacity:1}100%{transform:translateY(-32px) scale(1.1);opacity:0}}
     .xp-floater{position:fixed;left:50%;transform:translateX(-50%);top:80px;z-index:9999;font-size:15px;font-weight:800;color:var(--lime);text-shadow:0 0 12px rgba(168,255,62,.6);pointer-events:none;animation:xp-pop 1.4s ease-out forwards;}
+    /* ─── Photo Diary ───────────────────────────────────────────────── */
+    .photo-diary-card{margin:0 14px 8px;padding:10px 14px;background:var(--surface);border:1px solid var(--sep);border-radius:16px;display:flex;flex-direction:column;gap:8px;flex-shrink:0;}
+    .photo-diary-header{display:flex;align-items:center;justify-content:space-between;}
+    .photo-diary-title{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:var(--cyan);text-transform:uppercase;letter-spacing:.6px;}
+    .photo-diary-img-wrap{position:relative;border-radius:12px;overflow:hidden;line-height:0;}
+    .photo-diary-img{width:100%;height:200px;object-fit:cover;border-radius:12px;display:block;transition:opacity .3s;}
+    .photo-diary-overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.65) 0%,transparent 50%);border-radius:12px;}
+    .photo-diary-actions{position:absolute;bottom:8px;left:0;right:0;display:flex;gap:6px;padding:0 8px;justify-content:flex-end;}
+    .photo-action-btn{background:rgba(0,0,0,.7);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.15);border-radius:8px;color:#fff;font-size:12px;font-weight:600;padding:6px 12px;cursor:pointer;display:flex;align-items:center;gap:5px;font-family:inherit;transition:background .2s;white-space:nowrap;}
+    .photo-action-btn:active{background:rgba(255,255,255,.12);}
+    .photo-delete-btn{background:rgba(255,69,58,.55);border-color:rgba(255,69,58,.4);padding:6px 10px;}
+    .photo-delete-btn:active{background:rgba(255,69,58,.75);}
+    .photo-upload-btn{width:100%;background:linear-gradient(135deg,rgba(0,229,255,.08),rgba(168,255,62,.05));border:1.5px dashed rgba(0,229,255,.35);border-radius:12px;color:var(--cyan);font-size:14px;font-weight:600;padding:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;font-family:inherit;transition:background .2s;}
+    .photo-upload-btn:active,.photo-upload-btn:hover{background:rgba(0,229,255,.14);}
+    .photo-upload-btn:disabled{opacity:.5;cursor:not-allowed;}
   </style>
 </head>
 <body>
@@ -855,6 +870,7 @@ const IcBarChart  = (p) => <Ic {...p} ch={<><line x1="12" x2="12" y1="20" y2="10
 const IcSettings  = (p) => <Ic {...p} ch={<><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></>}/>;
 const IcSearch    = (p) => <Ic {...p} ch={<><circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/></>}/>;
 const IcClock     = (p) => <Ic {...p} ch={<><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></>}/>;
+const IcCamera    = (p) => <Ic {...p} ch={<><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></>}/>;
 
 // ─── Auth Screen ──────────────────────────────────────────────────
 function AuthScreen() {
@@ -1089,6 +1105,100 @@ function XPBar({ xp }) {
         <div className="xp-bar-fill" style={{width:`${pct}%`}}/>
       </div>
       <div className="xp-nums">{xpInLevel}<span style={{color:'var(--surface3)',fontWeight:400}}>/{xpForNext}</span> Опыт</div>
+    </div>
+  );
+}
+
+// ─── Photo Diary Card ───────────────────────────────────────────────
+function PhotoDiaryCard({ photoUrl, userId, selectedDate, onUpload }) {
+  const [uploading, setUploading] = useState(false);
+  const [collapsed, setCollapsed] = useState(!photoUrl);
+  const fileRef = useRef(null);
+
+  // Auto-expand when a photo arrives (e.g. on date change)
+  useEffect(() => { setCollapsed(!photoUrl); }, [selectedDate]);
+
+  const handleFile = async (e) => {
+    const file = e.target.files[0];
+    if (!file || !userId) return;
+    setUploading(true);
+    try {
+      const path = `${userId}/${selectedDate}`;
+      const { error: upErr } = await window.supabaseClient.storage
+        .from('photos')
+        .upload(path, file, { upsert: true, contentType: file.type });
+      if (upErr) throw upErr;
+      const { data: urlData } = window.supabaseClient.storage
+        .from('photos')
+        .getPublicUrl(path);
+      // Cache-bust so a replaced image loads fresh
+      onUpload(urlData.publicUrl + '?t=' + Date.now());
+      setCollapsed(false);
+    } catch(err) {
+      console.error('[PhotoDiary] upload error:', err);
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = '';
+    }
+  };
+
+  const handleDelete = async () => {
+    try {
+      await window.supabaseClient.storage
+        .from('photos')
+        .remove([`${userId}/${selectedDate}`]);
+    } catch(e) { /* non-fatal */ }
+    onUpload(null);
+    setCollapsed(true);
+  };
+
+  return (
+    <div className="photo-diary-card">
+      <div className="photo-diary-header">
+        <div className="photo-diary-title">
+          <IcCamera size={13} color="var(--cyan)"/>
+          <span>Фото формы</span>
+        </div>
+        {!collapsed && !photoUrl && (
+          <button onClick={() => setCollapsed(true)}
+            style={{background:'none',border:'none',color:'var(--text3)',fontSize:16,cursor:'pointer',padding:'0 2px',lineHeight:1}}>×</button>
+        )}
+        {collapsed && (
+          <button onClick={() => { setCollapsed(false); if (!photoUrl) fileRef.current?.click(); }}
+            className="btn btn-sm btn-secondary" style={{fontSize:11,padding:'4px 10px'}}>
+            {photoUrl ? 'Показать' : 'Добавить'}
+          </button>
+        )}
+      </div>
+
+      {!collapsed && (
+        photoUrl ? (
+          <div className="photo-diary-img-wrap">
+            <img src={photoUrl} className="photo-diary-img" alt="Фото формы"/>
+            <div className="photo-diary-overlay"/>
+            <div className="photo-diary-actions">
+              <button className="photo-action-btn" disabled={uploading}
+                onClick={() => fileRef.current?.click()}>
+                {uploading ? <span className="spinner"/> : <IcCamera size={13}/>}
+                {uploading ? 'Синхронизация...' : 'Заменить'}
+              </button>
+              <button className="photo-action-btn photo-delete-btn" onClick={handleDelete}
+                disabled={uploading} title="Удалить">✕</button>
+            </div>
+          </div>
+        ) : (
+          <button className="photo-upload-btn" disabled={uploading}
+            onClick={() => fileRef.current?.click()}>
+            {uploading
+              ? <><span className="spinner"/> Синхронизация...</>
+              : <><IcCamera size={18}/> Добавить фото дня</>
+            }
+          </button>
+        )
+      )}
+
+      <input ref={fileRef} type="file" accept="image/*" capture="environment"
+        style={{display:'none'}} onChange={handleFile}/>
     </div>
   );
 }
@@ -2362,6 +2472,12 @@ function App({ userId, initialData, onLogout }) {
       <DateNav selectedDate={selectedDate} onChange={handleDateChange} logs={logs}/>
       <FitnessRings dayData={data} profile={profileSnap}/>
       <XPBar xp={xp}/>
+      <PhotoDiaryCard
+        photoUrl={data.photoUrl}
+        userId={userId}
+        selectedDate={selectedDate}
+        onUpload={(url) => update('photoUrl', url)}
+      />
       <div className="screen">
         {SCREENS[activeTab]}
         <ExportButton state={data} showToast={showToast}/>
