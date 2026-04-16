@@ -815,6 +815,8 @@ const IcUser      = (p) => <Ic {...p} ch={<><path d="M19 21v-2a4 4 0 0 0-4-4H9a4
 const IcTarget    = (p) => <Ic {...p} ch={<><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></>}/>;
 const IcBarChart  = (p) => <Ic {...p} ch={<><line x1="12" x2="12" y1="20" y2="10"/><line x1="18" x2="18" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="16"/></>}/>;
 const IcSettings  = (p) => <Ic {...p} ch={<><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></>}/>;
+const IcSearch    = (p) => <Ic {...p} ch={<><circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/></>}/>;
+const IcClock     = (p) => <Ic {...p} ch={<><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></>}/>;
 
 // ─── Auth Screen ──────────────────────────────────────────────────
 function AuthScreen() {
@@ -1742,19 +1744,6 @@ function NutritionScreen({ state, update, showToast }) {
   );
 }
 
-// ─── Exercise History Hook ───────────────────────────────────────
-function useExerciseHistory(logs) {
-  return useMemo(() => {
-    const names = new Set();
-    Object.values(logs).forEach(day => {
-      if (day?.workout?.exercises) {
-        day.workout.exercises.forEach(ex => { if (ex.name) names.add(ex.name.trim()); });
-      }
-    });
-    return Array.from(names).sort((a, b) => a.localeCompare(b, 'ru'));
-  }, [logs]);
-}
-
 // ─── Screen 5: Workout ───────────────────────────────────────────
 function WorkoutScreen({ state, update, logs }) {
   const t = useT();
@@ -1837,8 +1826,11 @@ function WorkoutScreen({ state, update, logs }) {
               {showSugg && filteredSugg.length > 0 && (
                 <div className="exercise-suggestions">
                   {history.length > 0 && (
-                    <div className="ex-sug-label">
-                      {inlineInput.trim() ? '🔍 Совпадения' : '🕐 История упражнений'}
+                    <div className="ex-sug-label" style={{display:'flex',alignItems:'center',gap:5}}>
+                      {inlineInput.trim()
+                        ? <><IcSearch size={11} color="var(--text3)"/><span>Совпадения</span></>
+                        : <><IcClock  size={11} color="var(--text3)"/><span>История упражнений</span></>
+                      }
                     </div>
                   )}
                   {filteredSugg.map(name => {
@@ -1847,7 +1839,7 @@ function WorkoutScreen({ state, update, logs }) {
                     return (
                       <div key={name} className="ex-sug-item"
                         onMouseDown={e=>{e.preventDefault();addExercise(name);setShowSugg(false);}}>
-                        <span style={{fontSize:14,flexShrink:0}}>💪</span>
+                        <IcDumbbell size={15} color="var(--text3)" style={{flexShrink:0}}/>
                         <span>{idx >= 0 && q
                           ? <>{name.slice(0,idx)}<mark>{name.slice(idx,idx+q.length)}</mark>{name.slice(idx+q.length)}</>
                           : name
