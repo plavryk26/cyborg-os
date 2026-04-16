@@ -241,6 +241,21 @@
     .auth-loading{text-align:center;color:var(--text3);font-size:14px;padding:40px 0;}
     .logout-btn{width:100%;background:rgba(255,69,58,.08);border:1.5px solid rgba(255,69,58,.25);border-radius:14px;padding:13px;font-size:15px;font-weight:600;color:var(--red);cursor:pointer;font-family:inherit;transition:background .2s;}
     .logout-btn:active{background:rgba(255,69,58,.18);}
+    /* ─── XP System ───────────────────────────────────────────────── */
+    .xp-widget{display:flex;align-items:center;gap:8px;padding:7px 14px;background:var(--header-bg);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);border-bottom:1px solid var(--sep);flex-shrink:0;}
+    .xp-level-badge{background:linear-gradient(135deg,rgba(0,229,255,.18),rgba(168,255,62,.15));border:1.5px solid rgba(0,229,255,.35);border-radius:8px;padding:3px 8px;font-size:11px;font-weight:800;color:var(--cyan);letter-spacing:.5px;white-space:nowrap;flex-shrink:0;}
+    .xp-rank{font-size:10px;font-weight:600;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:110px;flex-shrink:0;}
+    .xp-bar-track{flex:1;height:5px;background:var(--surface2);border-radius:100px;overflow:hidden;min-width:0;}
+    .xp-bar-fill{height:100%;border-radius:100px;background:linear-gradient(90deg,var(--cyan),var(--lime));transition:width .6s cubic-bezier(.4,0,.2,1);}
+    .xp-nums{font-size:10px;color:var(--text3);font-weight:600;white-space:nowrap;flex-shrink:0;}
+    .cyber-stats-card{background:linear-gradient(135deg,rgba(0,229,255,.07),rgba(168,255,62,.04));border:1.5px solid rgba(0,229,255,.22);border-radius:16px;padding:16px;margin-bottom:12px;}
+    .cyber-rank-title{font-size:11px;font-weight:700;color:var(--cyan);text-transform:uppercase;letter-spacing:.8px;margin-bottom:14px;}
+    .cyber-stat-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--sep);}
+    .cyber-stat-row:last-child{border-bottom:none;padding-bottom:0;}
+    .xp-next-bar-track{flex:1;height:4px;background:var(--surface2);border-radius:100px;overflow:hidden;}
+    .xp-next-bar-fill{height:100%;border-radius:100px;background:linear-gradient(90deg,var(--cyan),var(--lime));}
+    @keyframes xp-pop{0%{transform:translateY(0) scale(1);opacity:1}100%{transform:translateY(-32px) scale(1.1);opacity:0}}
+    .xp-floater{position:fixed;left:50%;transform:translateX(-50%);top:80px;z-index:9999;font-size:15px;font-weight:800;color:var(--lime);text-shadow:0 0 12px rgba(168,255,62,.6);pointer-events:none;animation:xp-pop 1.4s ease-out forwards;}
   </style>
 </head>
 <body>
@@ -320,6 +335,7 @@ function getProfile() {
     goalKcal: '500', goalWaterL: '3', goalCalories: '2000',
     avatar: '',
     inbody: { muscleMass: '', bodyFat: '', totalWater: '' },
+    xp: 0, level: 1,
   });
 }
 
@@ -402,6 +418,27 @@ function computeUnlocked(habits, logs) {
   const wt  = countWorkoutDays(logs);
   const ww  = countWorkoutsThisWeek(logs);
   return { clean_lungs: sm >= 7, sober_mind: al >= 100, iron_will: ww >= 4, athlete: wt >= 20, cyborg: wt >= 30 };
+}
+
+// ─── XP / Leveling System ───────────────────────────────────────────
+function xpForLevel(lvl) { return lvl * 500; }
+function computeXPLevel(totalXp) {
+  let level = 1, spent = 0;
+  while (true) {
+    const needed = xpForLevel(level);
+    if (spent + needed > totalXp) break;
+    spent += needed;
+    level++;
+  }
+  return { level, xpInLevel: totalXp - spent, xpForNext: xpForLevel(level) };
+}
+function getCyberRank(level) {
+  if (level >= 51) return 'Высший Разум (SkyNet)';
+  if (level >= 36) return 'Кибер-Титан';
+  if (level >= 21) return 'Боевой Андроид';
+  if (level >= 13) return 'Дополненный Человек';
+  if (level >= 6)  return 'Кибер-Неофит';
+  return 'Биологический Образец';
 }
 
 // ─── Migrate old data ─────────────────────────────────────────────
@@ -1032,6 +1069,22 @@ function FitnessRings({ dayData, profile }) {
 }
 
 // ─── Barcode Scanner ─────────────────────────────────────────────
+function XPBar({ xp }) {
+  const { level, xpInLevel, xpForNext } = computeXPLevel(xp);
+  const pct = Math.min(xpInLevel / xpForNext * 100, 100).toFixed(1);
+  const rank = getCyberRank(level);
+  return (
+    <div className="xp-widget">
+      <div className="xp-level-badge">УР {level}</div>
+      <div className="xp-rank">{rank}</div>
+      <div className="xp-bar-track">
+        <div className="xp-bar-fill" style={{width:`${pct}%`}}/>
+      </div>
+      <div className="xp-nums">{xpInLevel}<span style={{color:'var(--surface3)',fontWeight:400}}>/{xpForNext}</span> Опыт</div>
+    </div>
+  );
+}
+
 function BarcodeScanner({ onResult, onClose }) {
   const t = useT();
   const videoRef=useRef(null),streamRef=useRef(null),activeRef=useRef(true);
@@ -1181,7 +1234,7 @@ function SettingsScreen({ settings, onSettingsChange, onLogout }) {
 }
 
 // ─── Profile Modal ────────────────────────────────────────────────
-function ProfileModal({ onClose, status, habits, setHabits, logs, settings, onSettingsChange, onLogout }) {
+function ProfileModal({ onClose, status, habits, setHabits, logs, settings, onSettingsChange, onLogout, xp }) {
   const t = useT();
   const [profileTab,   setProfileTab]   = useState('profile');
   const [profile,      setProfile]      = useState(getProfile);
@@ -1256,7 +1309,7 @@ function ProfileModal({ onClose, status, habits, setHabits, logs, settings, onSe
 
       <div className="screen">
         {profileTab === 'habits'   && <HabitsScreen habits={habits} setHabits={setHabits} showToast={()=>{}} />}
-        {profileTab === 'stats'    && <StatsScreen  logs={logs} habits={habits} showToast={()=>{}} />}
+        {profileTab === 'stats'    && <StatsScreen  logs={logs} habits={habits} showToast={()=>{}} xp={xp} />}
         {profileTab === 'settings' && <SettingsScreen settings={settings} onSettingsChange={onSettingsChange} onLogout={onLogout}/>}
         {profileTab !== 'profile'  ? null : (
           <div className="screen-content fade-up">
@@ -1642,7 +1695,7 @@ async function fetchProductByBarcode(barcode) {
 const EMPTY_FORM={name:'',portionG:'',kcal100:'',protein100:'',fat100:'',carbs100:'',kcal:'',protein:'',fat:'',carbs:''};
 function calcFromPer100(f){const g=parseFloat(f.portionG);if(!g||g<=0)return f;const c=v=>v!==''?String(Math.round(parseFloat(v)*g/100*10)/10):'';return{...f,kcal:f.kcal100!==''?String(Math.round(parseFloat(f.kcal100)*g/100)):f.kcal,protein:f.protein100!==''?c(f.protein100):f.protein,fat:f.fat100!==''?c(f.fat100):f.fat,carbs:f.carbs100!==''?c(f.carbs100):f.carbs};}
 
-function NutritionScreen({ state, update, showToast }) {
+function NutritionScreen({ state, update, showToast, onXP }) {
   const t = useT();
   const { nutrition, activity } = state;
   const [showAdd,setShowAdd]=useState(false);
@@ -1655,9 +1708,9 @@ function NutritionScreen({ state, update, showToast }) {
   const totals=nutrition.meals.reduce((acc,m)=>({kcal:acc.kcal+(+m.kcal||0),protein:acc.protein+(+m.protein||0),fat:acc.fat+(+m.fat||0),carbs:acc.carbs+(+m.carbs||0)}),{kcal:0,protein:0,fat:0,carbs:0});
   const balance=totals.kcal-(+activity.activeKcal||0);
   const waterPct=Math.min(nutrition.waterMl/waterGoal*100,100);
-  const addMeal=()=>{if(!form.name)return;const f=calcFromPer100(form);update('nutrition',{...nutrition,meals:[...nutrition.meals,{id:Date.now(),name:f.name,kcal:f.kcal,protein:f.protein,fat:f.fat,carbs:f.carbs,portionG:f.portionG}]});setForm(EMPTY_FORM);setShowAdd(false);};
+  const addMeal=()=>{if(!form.name)return;const f=calcFromPer100(form);update('nutrition',{...nutrition,meals:[...nutrition.meals,{id:Date.now(),name:f.name,kcal:f.kcal,protein:f.protein,fat:f.fat,carbs:f.carbs,portionG:f.portionG}]});setForm(EMPTY_FORM);setShowAdd(false);onXP&&onXP(30);};
   const removeMeal=id=>update('nutrition',{...nutrition,meals:nutrition.meals.filter(m=>m.id!==id)});
-  const addWater=()=>update('nutrition',{...nutrition,waterMl:Math.min(nutrition.waterMl+250,waterGoal)});
+  const addWater=()=>{update('nutrition',{...nutrition,waterMl:Math.min(nutrition.waterMl+250,waterGoal)});onXP&&onXP(10);};
   const handleBarcode=async(code)=>{setShowScanner(false);setShowAdd(true);setFetching(true);showToast(t('searching'));const product=await fetchProductByBarcode(code);setFetching(false);if(product){setForm(prev=>calcFromPer100({...prev,...product}));showToast(t('product_found'));}else showToast(t('product_not_found'));};
   const closeAdd=()=>{setShowAdd(false);setForm(EMPTY_FORM);};
   return (
@@ -1745,7 +1798,7 @@ function NutritionScreen({ state, update, showToast }) {
 }
 
 // ─── Screen 5: Workout ───────────────────────────────────────────
-function WorkoutScreen({ state, update, logs }) {
+function WorkoutScreen({ state, update, logs, onXP }) {
   const t = useT();
   const { workout } = state;
   const [inlineInput, setInlineInput] = useState('');
@@ -1767,7 +1820,7 @@ function WorkoutScreen({ state, update, logs }) {
     return pool.slice(0, 5);
   }, [history, inlineInput]);
   const updateCardio=(field,val)=>update('workout',{...workout,cardio:{...workout.cardio,[field]:val}});
-  const addExercise=(name)=>{const n=(name||inlineInput).trim();if(!n)return;update('workout',{...workout,exercises:[...workout.exercises,{id:Date.now(),name:n,sets:[]}]});setInlineInput('');setShowInline(false);};
+  const addExercise=(name)=>{const n=(name||inlineInput).trim();if(!n)return;update('workout',{...workout,exercises:[...workout.exercises,{id:Date.now(),name:n,sets:[]}]});setInlineInput('');setShowInline(false);onXP&&onXP(150);};
   const addSet=exId=>update('workout',{...workout,exercises:workout.exercises.map(ex=>ex.id===exId?{...ex,sets:[...ex.sets,{id:Date.now(),weight:'',reps:'',dropset:false}]}:ex)});
   const updateSet=(exId,setId,field,val)=>update('workout',{...workout,exercises:workout.exercises.map(ex=>ex.id===exId?{...ex,sets:ex.sets.map(s=>s.id===setId?{...s,[field]:val}:s)}:ex)});
   const removeSet=(exId,setId)=>update('workout',{...workout,exercises:workout.exercises.map(ex=>ex.id===exId?{...ex,sets:ex.sets.filter(s=>s.id!==setId)}:ex)});
@@ -2028,7 +2081,7 @@ function AchievementsBoard({ habits, logs, showToast }) {
 }
 
 // ─── Screen 8: Stats ─────────────────────────────────────────────
-function StatsScreen({ logs, habits, showToast }) {
+function StatsScreen({ logs, habits, showToast, xp = 0 }) {
   const t = useT();
   const weekCount=useMemo(()=>countWorkoutsThisWeek(logs),[logs]);
   const monthCount=useMemo(()=>countWorkoutsThisMonth(logs),[logs]);
@@ -2044,8 +2097,42 @@ function StatsScreen({ logs, habits, showToast }) {
   const plotPoints=weightData.map((p,i)=>({...p,x:(i/13)*SVG_W,y:p.w!==null?SVG_H-((p.w-minW)/range)*(SVG_H-12)-6:null}));
   const linePoints=plotPoints.filter(p=>p.y!==null);
   const polyline=linePoints.map(p=>`${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+  // XP derived values
+  const { level, xpInLevel, xpForNext } = computeXPLevel(xp);
+  const rank = getCyberRank(level);
+  const xpPct = Math.min(xpInLevel / xpForNext * 100, 100).toFixed(1);
   return(
     <div className="screen-content fade-up">
+      {/* Cyber Stats Card */}
+      <div className="section-title" style={{marginBottom:0}}>Кибер-Статистика</div>
+      <div className="cyber-stats-card">
+        <div className="cyber-rank-title">⚡ Ранг: {rank}</div>
+        <div className="cyber-stat-row">
+          <span style={{fontSize:13,color:'var(--text3)'}}>Уровень</span>
+          <span style={{fontSize:18,fontWeight:800,color:'var(--cyan)',letterSpacing:'-1px'}}>УР {level}</span>
+        </div>
+        <div className="cyber-stat-row">
+          <span style={{fontSize:13,color:'var(--text3)'}}>Всего опыта</span>
+          <span style={{fontSize:15,fontWeight:700,color:'var(--lime)'}}>{xp.toLocaleString('ru-RU')} ОП</span>
+        </div>
+        <div className="cyber-stat-row" style={{flexDirection:'column',alignItems:'stretch',gap:8}}>
+          <div style={{display:'flex',justifyContent:'space-between'}}>
+            <span style={{fontSize:13,color:'var(--text3)'}}>Прогресс до ур. {level + 1}</span>
+            <span style={{fontSize:13,fontWeight:600,color:'var(--cyan)'}}>{xpInLevel}/{xpForNext}</span>
+          </div>
+          <div className="xp-next-bar-track">
+            <div className="xp-next-bar-fill" style={{width:`${xpPct}%`}}/>
+          </div>
+        </div>
+        <div style={{marginTop:12,paddingTop:10,borderTop:'1px solid var(--sep)',display:'flex',gap:8,flexWrap:'wrap'}}>
+          {[{label:'💧 +10 ОП',hint:'За добавление воды'},{label:'🍽 +30 ОП',hint:'За приём пищи'},{label:'💪 +150 ОП',hint:'За упражнение'},{label:'🎯 +100 ОП',hint:'За закрытие кольца'}].map(r=>(
+            <div key={r.label} style={{background:'var(--surface2)',borderRadius:8,padding:'4px 8px'}}>
+              <div style={{fontSize:11,fontWeight:700,color:'var(--lime)'}}>{r.label}</div>
+              <div style={{fontSize:9,color:'var(--text3)',marginTop:1}}>{r.hint}</div>
+            </div>
+          ))}
+        </div>
+      </div>
       <div className="section-title">{t('stats_title')}</div>
       <div className="grid-2">
         <div className="stat-card">
@@ -2147,6 +2234,8 @@ function App({ userId, initialData, onLogout }) {
   const [logs,         setLogs]         = useState(initialData.logs);
   const [habits,       setHabits]       = useState(initialData.habits);
   const [settings,     setSettings]     = useState(initialData.settings);
+  const [xp,           setXp]           = useState(initialData.profile.xp || 0);
+  const prevRingsRef = useRef(null);
 
   const lang = settings.lang || 'ru';
   const t = useCallback(key => TRANSLATIONS[lang]?.[key] ?? TRANSLATIONS.ru?.[key] ?? key, [lang]);
@@ -2196,6 +2285,44 @@ function App({ userId, initialData, onLogout }) {
 
   const update    = useCallback((field, value) => setData(prev => ({...prev,[field]:value})), []);
   const showToast = useCallback((msg) => { setToast(null); setTimeout(() => setToast(msg), 10); }, []);
+
+  const grantXP = useCallback((amount) => {
+    setXp(prev => {
+      const newXp = prev + amount;
+      const { level } = computeXPLevel(newXp);
+      const p = getProfile();
+      const updated = { ...p, xp: newXp, level };
+      setStorage(PROFILE_KEY, updated);
+      debouncedSave(userId, 'profile', updated);
+      return newXp;
+    });
+    // Floating XP animation
+    const el = document.createElement('div');
+    el.className = 'xp-floater';
+    el.textContent = `⚡ +${amount} Опыт`;
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 1500);
+  }, []);
+
+  // Ring bonus: +100 XP when any ring transitions from < 100% to 100%
+  useEffect(() => {
+    const goalKcal  = parseFloat(profileSnap.goalKcal)  || 500;
+    const goalWaterL = parseFloat(profileSnap.goalWaterL) || 3;
+    const goalCal   = parseFloat(profileSnap.goalCalories) || 2000;
+    const activeKcal = parseFloat(data.activity.activeKcal) || 0;
+    const waterL     = (data.nutrition.waterMl || 0) / 1000;
+    const totalKcal  = data.nutrition.meals.reduce((s, m) => s + (+m.kcal || 0), 0);
+    const rings = {
+      activity:  goalKcal  > 0 && activeKcal >= goalKcal,
+      nutrition: goalCal   > 0 && totalKcal  >= goalCal,
+      water:     goalWaterL > 0 && waterL    >= goalWaterL,
+    };
+    if (prevRingsRef.current === null) { prevRingsRef.current = rings; return; }
+    if (rings.activity  && !prevRingsRef.current.activity)  grantXP(100);
+    if (rings.nutrition && !prevRingsRef.current.nutrition) grantXP(100);
+    if (rings.water     && !prevRingsRef.current.water)     grantXP(100);
+    prevRingsRef.current = rings;
+  }, [data, profileSnap]);
   const completeTutorial = useCallback(() => { localStorage.setItem(TUTORIAL_KEY,'1'); setShowTutorial(false); }, []);
 
   const closeProfile = useCallback(() => {
@@ -2215,8 +2342,8 @@ function App({ userId, initialData, onLogout }) {
     sleep:     <SleepScreen      state={data} update={update}/>,
     activity:  <ActivityScreen   state={data} update={update}/>,
     supps:     <SupplementsScreen state={data} update={update}/>,
-    nutrition: <NutritionScreen  state={data} update={update} showToast={showToast}/>,
-    workout:   <WorkoutScreen    state={data} update={update} logs={logs}/>,
+    nutrition: <NutritionScreen  state={data} update={update} showToast={showToast} onXP={grantXP}/>,
+    workout:   <WorkoutScreen    state={data} update={update} logs={logs}          onXP={grantXP}/>,
     recovery:  <RecoveryScreen   state={data} update={update}/>,
   };
 
@@ -2226,6 +2353,7 @@ function App({ userId, initialData, onLogout }) {
         userName={profileSnap.name} avatarSrc={profileSnap.avatar} status={status}/>
       <DateNav selectedDate={selectedDate} onChange={handleDateChange} logs={logs}/>
       <FitnessRings dayData={data} profile={profileSnap}/>
+      <XPBar xp={xp}/>
       <div className="screen">
         {SCREENS[activeTab]}
         <ExportButton state={data} showToast={showToast}/>
@@ -2237,7 +2365,7 @@ function App({ userId, initialData, onLogout }) {
           onClose={closeProfile} status={status}
           habits={habits} setHabits={setHabits} logs={logs}
           settings={settings} onSettingsChange={handleSettingsChange}
-          onLogout={onLogout}
+          onLogout={onLogout} xp={xp}
         />
       )}
       {showTutorial && <TutorialOverlay onComplete={completeTutorial}/>}
