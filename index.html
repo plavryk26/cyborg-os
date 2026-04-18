@@ -234,7 +234,7 @@
     .auth-card{width:100%;max-width:380px;background:var(--surface);border:1.5px solid var(--sep);border-radius:24px;padding:32px 28px;box-shadow:0 0 60px rgba(0,229,255,.08),0 8px 40px rgba(0,0,0,.14);}
     .auth-logo{font-size:24px;font-weight:900;letter-spacing:-1px;text-align:center;margin-bottom:4px;background:linear-gradient(135deg,var(--cyan),var(--lime));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;text-shadow:none;}
     .auth-subtitle{font-size:11px;color:var(--text3);text-align:center;margin-bottom:32px;letter-spacing:1.5px;text-transform:uppercase;}
-    .auth-input{width:100%;background:var(--surface2);border:1.5px solid var(--sep);border-radius:14px;padding:14px 16px;font-size:16px;color:var(--text);font-family:inherit;outline:none;box-sizing:border-box;transition:border-color .2s;-webkit-appearance:none;display:block;}
+    .auth-input{width:100%;background:var(--surface2);border:1.5px solid var(--sep);border-radius:14px;padding:14px 16px;font-size:16px;color:var(--text);font-family:inherit;outline:none;box-sizing:border-box;transition:border-color .2s;-webkit-appearance:none;appearance:none;display:block;}
     .auth-input:focus{border-color:var(--cyan);}
     .auth-btn{width:100%;background:linear-gradient(135deg,var(--cyan),var(--lime));border:none;border-radius:14px;padding:14px;font-size:16px;font-weight:700;color:#000;cursor:pointer;font-family:inherit;margin-top:8px;letter-spacing:.2px;transition:opacity .2s;display:block;}
     .auth-btn:active{opacity:.85;} .auth-btn:disabled{opacity:.5;cursor:default;}
@@ -274,11 +274,34 @@
     .photo-upload-btn{width:100%;background:linear-gradient(135deg,rgba(0,229,255,.08),rgba(168,255,62,.05));border:1.5px dashed rgba(0,229,255,.35);border-radius:12px;color:var(--cyan);font-size:14px;font-weight:600;padding:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;font-family:inherit;transition:background .2s;}
     .photo-upload-btn:active,.photo-upload-btn:hover{background:rgba(0,229,255,.14);}
     .photo-upload-btn:disabled{opacity:.5;cursor:not-allowed;}
+
+    /* ── Recovery Constructor ── */
+    .recovery-template-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--sep);}
+    .recovery-template-row:last-child{border-bottom:none;}
+    .recovery-add-btn{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:10px;border-radius:12px;border:1.5px dashed var(--sep);background:transparent;color:var(--text3);font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;margin-top:8px;transition:border-color .2s,color .2s;}
+    .recovery-add-btn:active{border-color:var(--cyan);color:var(--cyan);}
+
+    /* ── Habit Offset Input ── */
+    .habit-offset-input{width:72px!important;text-align:center!important;font-size:20px!important;font-weight:700!important;padding:6px 8px!important;}
+
+    /* ── Achievement Categories ── */
+    .ach-category{margin-bottom:22px;}
+    .ach-cat-title{font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+    .ach-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+    .ach-card{display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 4px 8px;border-radius:12px;background:var(--surface2);transition:transform .15s;}
+    .ach-card.unlocked{background:var(--surface);box-shadow:var(--card-shadow);border:1.5px solid var(--sep);}
+    .ach-card.locked{opacity:.32;filter:grayscale(.85);}
+    .ach-card.just-unlocked{animation:badgeUnlock .65s cubic-bezier(.34,1.56,.64,1);}
+    .ach-emoji{font-size:26px;line-height:1.1;}
+    .ach-name{font-size:10px;font-weight:700;text-align:center;color:var(--text);line-height:1.2;}
+    .ach-desc{font-size:9px;color:var(--text3);text-align:center;line-height:1.3;}
+    .ach-tag{font-size:8px;font-weight:800;letter-spacing:.2px;margin-top:1px;}
   </style>
 </head>
 <body>
 <div id="root"></div>
 <script type="text/babel">
+// @ts-nocheck
 const { useState, useEffect, useCallback, useRef, useMemo, createContext, useContext } = React;
 
 // ─── Supabase Client ──────────────────────────────────────────────
@@ -340,7 +363,8 @@ function makeEmptyDay(date) {
       cardio: { machine: '', angle: '', speed: '', duration: '', distance: '' },
       exercises: [],
     },
-    recovery: { sauna: false, massage: false, pressotherapy: false, notes: '' },
+    recovery: { notes: '' },
+    recoveryItems: {},
   };
 }
 
@@ -354,6 +378,11 @@ function getProfile() {
     avatar: '',
     inbody: { muscleMass: '', bodyFat: '', totalWater: '' },
     xp: 0, level: 1,
+    recoveryTemplates: [
+      { id: 'sauna',         name: 'Сауна',         emoji: '🔥' },
+      { id: 'massage',       name: 'Массаж',         emoji: '💆' },
+      { id: 'pressotherapy', name: 'Прессотерапия',  emoji: '🦵' },
+    ],
   });
 }
 
@@ -387,8 +416,10 @@ function calcAutoGoals(weight, bodyFatPct, goal) {
 // ─── Habits ───────────────────────────────────────────────────────
 function getHabits() {
   return getStorage(HABITS_KEY, {
-    noSmoking: { active: false, startDate: null, streakDays: 0 },
-    noAlcohol:  { active: false, startDate: null, streakDays: 0 },
+    noSmoking: { active: false, startDate: null, streakDays: 0, offset: 0 },
+    noAlcohol:  { active: false, startDate: null, streakDays: 0, offset: 0 },
+    noSugar:    { active: false, startDate: null, streakDays: 0, offset: 0 },
+    noCoffee:   { active: false, startDate: null, streakDays: 0, offset: 0 },
   });
 }
 function saveHabits(h) { setStorage(HABITS_KEY, h); }
@@ -398,6 +429,29 @@ function saveAchievements(a) { setStorage(ACHIEVEMENTS_KEY, a); }
 function calcStreakDays(startDate) {
   if (!startDate) return 0;
   return Math.max(0, Math.floor((new Date() - new Date(startDate + 'T00:00:00')) / 86400000));
+}
+function totalHabitDays(habit) {
+  if (!habit) return 0;
+  const logged = habit.active ? calcStreakDays(habit.startDate) : (habit.streakDays || 0);
+  return logged + (parseInt(habit.offset, 10) || 0);
+}
+function countAllRingsClosedStreak(logs) {
+  const p = getProfile();
+  const goalKcal  = parseFloat(p.goalKcal)    || 500;
+  const goalWater = parseFloat(p.goalWaterL)   || 3;
+  const goalCal   = parseFloat(p.goalCalories) || 2000;
+  let streak = 0;
+  for (let i = 0; i <= 730; i++) {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    const log = logs[isoDate(d)];
+    if (!log) break;
+    const activeKcal = parseFloat(log.activity?.activeKcal) || 0;
+    const waterL     = (log.nutrition?.waterMl || 0) / 1000;
+    const totalKcal  = (log.nutrition?.meals || []).reduce((s,m) => s + (+m.kcal||0), 0);
+    if (activeKcal >= goalKcal && waterL >= goalWater && totalKcal >= goalCal) streak++;
+    else break;
+  }
+  return streak;
 }
 function isDayWorkout(dayLog) {
   if (!dayLog) return false;
@@ -423,19 +477,50 @@ function computeStatus(workoutDays, t) {
 }
 
 const BADGE_DEFS = [
-  { id: 'clean_lungs', emoji: '🫁', name_key: 'badge_clean_lungs', desc_key: 'badge_clean_lungs_d', color: '#A8FF3E' },
-  { id: 'sober_mind',  emoji: '🧊', name_key: 'badge_sober_mind',  desc_key: 'badge_sober_mind_d',  color: '#00E5FF' },
-  { id: 'iron_will',   emoji: '⚙️', name_key: 'badge_iron_will',   desc_key: 'badge_iron_will_d',   color: '#BF5AF2' },
-  { id: 'athlete',     emoji: '🏅', name_key: 'badge_athlete',     desc_key: 'badge_athlete_d',     color: '#FF9F0A' },
-  { id: 'cyborg',      emoji: '🤖', name_key: 'badge_cyborg',      desc_key: 'badge_cyborg_d',      color: '#00E5FF' },
+  // Без курения
+  { id:'smoke_7',     emoji:'🌱', name_key:'badge_smoke_7',     desc_key:'badge_smoke_7_d',     color:'#A8FF3E', cat:'habits' },
+  { id:'smoke_21',    emoji:'🌿', name_key:'badge_smoke_21',    desc_key:'badge_smoke_21_d',    color:'#A8FF3E', cat:'habits' },
+  { id:'smoke_50',    emoji:'🫁', name_key:'badge_smoke_50',    desc_key:'badge_smoke_50_d',    color:'#A8FF3E', cat:'habits' },
+  { id:'smoke_100',   emoji:'💚', name_key:'badge_smoke_100',   desc_key:'badge_smoke_100_d',   color:'#A8FF3E', cat:'habits' },
+  { id:'smoke_365',   emoji:'🦅', name_key:'badge_smoke_365',   desc_key:'badge_smoke_365_d',   color:'#A8FF3E', cat:'habits' },
+  // Без алкоголя
+  { id:'alco_7',      emoji:'🧊', name_key:'badge_alco_7',      desc_key:'badge_alco_7_d',      color:'#00E5FF', cat:'habits' },
+  { id:'alco_30',     emoji:'💧', name_key:'badge_alco_30',     desc_key:'badge_alco_30_d',     color:'#00E5FF', cat:'habits' },
+  { id:'alco_100',    emoji:'🌊', name_key:'badge_alco_100',    desc_key:'badge_alco_100_d',    color:'#00E5FF', cat:'habits' },
+  { id:'alco_365',    emoji:'🏆', name_key:'badge_alco_365',    desc_key:'badge_alco_365_d',    color:'#00E5FF', cat:'habits' },
+  // Без сахара
+  { id:'sugar_7',     emoji:'🍎', name_key:'badge_sugar_7',     desc_key:'badge_sugar_7_d',     color:'#FF9F0A', cat:'habits' },
+  { id:'sugar_30',    emoji:'🥗', name_key:'badge_sugar_30',    desc_key:'badge_sugar_30_d',    color:'#FF9F0A', cat:'habits' },
+  // Без кофе
+  { id:'coffee_7',    emoji:'☕', name_key:'badge_coffee_7',    desc_key:'badge_coffee_7_d',    color:'#BF5AF2', cat:'habits' },
+  { id:'coffee_30',   emoji:'🧘', name_key:'badge_coffee_30',   desc_key:'badge_coffee_30_d',   color:'#BF5AF2', cat:'habits' },
+  // Тренировки
+  { id:'workout_1',   emoji:'🏋️', name_key:'badge_workout_1',   desc_key:'badge_workout_1_d',   color:'#FF9F0A', cat:'fitness' },
+  { id:'workout_10',  emoji:'💪', name_key:'badge_workout_10',  desc_key:'badge_workout_10_d',  color:'#FF9F0A', cat:'fitness' },
+  { id:'workout_25',  emoji:'🔥', name_key:'badge_workout_25',  desc_key:'badge_workout_25_d',  color:'#FF453A', cat:'fitness' },
+  { id:'workout_50',  emoji:'⚡', name_key:'badge_workout_50',  desc_key:'badge_workout_50_d',  color:'#FF453A', cat:'fitness' },
+  { id:'workout_100', emoji:'🤖', name_key:'badge_workout_100', desc_key:'badge_workout_100_d', color:'#00E5FF', cat:'fitness' },
+  // Стабильность (кольца)
+  { id:'rings_3',     emoji:'🎯', name_key:'badge_rings_3',     desc_key:'badge_rings_3_d',     color:'#30D158', cat:'consistency' },
+  { id:'rings_7',     emoji:'💎', name_key:'badge_rings_7',     desc_key:'badge_rings_7_d',     color:'#30D158', cat:'consistency' },
 ];
 
 function computeUnlocked(habits, logs) {
-  const sm  = habits.noSmoking.active ? calcStreakDays(habits.noSmoking.startDate) : habits.noSmoking.streakDays;
-  const al  = habits.noAlcohol.active ? calcStreakDays(habits.noAlcohol.startDate) : habits.noAlcohol.streakDays;
-  const wt  = countWorkoutDays(logs);
-  const ww  = countWorkoutsThisWeek(logs);
-  return { clean_lungs: sm >= 7, sober_mind: al >= 100, iron_will: ww >= 4, athlete: wt >= 20, cyborg: wt >= 30 };
+  const h = k => habits[k] || {};
+  const sm = totalHabitDays(h('noSmoking'));
+  const al = totalHabitDays(h('noAlcohol'));
+  const su = totalHabitDays(h('noSugar'));
+  const co = totalHabitDays(h('noCoffee'));
+  const wt = countWorkoutDays(logs);
+  const rs = countAllRingsClosedStreak(logs);
+  return {
+    smoke_7: sm>=7,   smoke_21: sm>=21,  smoke_50: sm>=50,  smoke_100: sm>=100, smoke_365: sm>=365,
+    alco_7:  al>=7,   alco_30:  al>=30,  alco_100: al>=100, alco_365:  al>=365,
+    sugar_7: su>=7,   sugar_30: su>=30,
+    coffee_7:co>=7,   coffee_30:co>=30,
+    workout_1: wt>=1,  workout_10: wt>=10, workout_25: wt>=25, workout_50: wt>=50, workout_100: wt>=100,
+    rings_3: rs>=3,   rings_7: rs>=7,
+  };
 }
 
 // ─── XP / Leveling System ───────────────────────────────────────────
@@ -554,6 +639,41 @@ const TRANSLATIONS = {
     badge_athlete:'Атлет', badge_athlete_d:'20 дней тренировок',
     badge_cyborg:'Киборг', badge_cyborg_d:'30 дней тренировок',
     badge_unlocked:'ПОЛУЧЕНО ✓', achievement_toast:'🏆 Достижение: ',
+    // Привычки
+    no_sugar:'Без сахара', no_coffee:'Без кофе',
+    sugar_days:'дней без сахара', coffee_days:'дней без кофе',
+    habit_offset_label:'Уже держусь', habit_offset_unit:'дней',
+    // Конструктор восстановления
+    recovery_constructor:'Мои ритуалы восстановления',
+    recovery_template_add:'+ Добавить ритуал',
+    recovery_no_templates:'Добавьте ритуалы в Профиле',
+    // Новые ачивки — Курение
+    badge_smoke_7:'Первая неделя', badge_smoke_7_d:'7 дней без сигарет',
+    badge_smoke_21:'Привычка сломана', badge_smoke_21_d:'21 день без никотина',
+    badge_smoke_50:'Новые лёгкие', badge_smoke_50_d:'50 дней без курения',
+    badge_smoke_100:'Чемпион', badge_smoke_100_d:'100 дней без никотина',
+    badge_smoke_365:'Феникс', badge_smoke_365_d:'1 год без сигарет',
+    // Алкоголь
+    badge_alco_7:'Трезвая неделя', badge_alco_7_d:'7 дней без алкоголя',
+    badge_alco_30:'Чистый месяц', badge_alco_30_d:'30 дней без алкоголя',
+    badge_alco_100:'Трезвый разум+', badge_alco_100_d:'100 дней без алкоголя',
+    badge_alco_365:'Год трезвости', badge_alco_365_d:'365 дней без алкоголя',
+    // Сахар
+    badge_sugar_7:'Без сахара нед.', badge_sugar_7_d:'7 дней без сахара',
+    badge_sugar_30:'Чистое питание', badge_sugar_30_d:'30 дней без сахара',
+    // Кофе
+    badge_coffee_7:'Без кофеина нед.', badge_coffee_7_d:'7 дней без кофе',
+    badge_coffee_30:'Стальные нервы', badge_coffee_30_d:'30 дней без кофе',
+    // Тренировки
+    badge_workout_1:'Первый шаг', badge_workout_1_d:'Первая тренировка',
+    badge_workout_10:'В ритме', badge_workout_10_d:'10 тренировок',
+    badge_workout_25:'Посвящённый', badge_workout_25_d:'25 тренировок',
+    badge_workout_50:'Ветеран зала', badge_workout_50_d:'50 тренировок',
+    badge_workout_100:'Легенда', badge_workout_100_d:'100 тренировок',
+    // Стабильность (кольца)
+    badge_rings_3:'Тройная серия', badge_rings_3_d:'3 дня подряд все кольца',
+    badge_rings_7:'Идеальная неделя', badge_rings_7_d:'7 дней подряд все кольца',
+    ach_section_habits:'Привычки', ach_section_fitness:'Фитнес', ach_section_consistency:'Стабильность',
   },
   en: {
     nav_sleep:'Sleep', nav_activity:'Activity', nav_supps:'Supps',
@@ -634,6 +754,41 @@ const TRANSLATIONS = {
     badge_athlete:'Athlete', badge_athlete_d:'20 training days',
     badge_cyborg:'Cyborg', badge_cyborg_d:'30 training days',
     badge_unlocked:'UNLOCKED ✓', achievement_toast:'🏆 Achievement: ',
+    // Habits (Phase 2)
+    no_sugar:'No Sugar', no_coffee:'No Coffee',
+    sugar_days:'days no sugar', coffee_days:'days no coffee',
+    habit_offset_label:'Already keeping', habit_offset_unit:'days',
+    // Recovery Constructor
+    recovery_constructor:'My Recovery Rituals',
+    recovery_template_add:'+ Add Ritual',
+    recovery_no_templates:'Add rituals in Profile',
+    // Smoking badges
+    badge_smoke_7:'First Week', badge_smoke_7_d:'7 days no smoking',
+    badge_smoke_21:'Habit Broken', badge_smoke_21_d:'21 days no nicotine',
+    badge_smoke_50:'New Lungs', badge_smoke_50_d:'50 days no smoking',
+    badge_smoke_100:'Champion', badge_smoke_100_d:'100 days no nicotine',
+    badge_smoke_365:'Phoenix', badge_smoke_365_d:'1 year no smoking',
+    // Alcohol badges
+    badge_alco_7:'Sober Week', badge_alco_7_d:'7 days no alcohol',
+    badge_alco_30:'Clean Month', badge_alco_30_d:'30 days no alcohol',
+    badge_alco_100:'Clear Mind+', badge_alco_100_d:'100 days no alcohol',
+    badge_alco_365:'Year Sober', badge_alco_365_d:'365 days no alcohol',
+    // Sugar badges
+    badge_sugar_7:'Sugar-Free Wk', badge_sugar_7_d:'7 days no sugar',
+    badge_sugar_30:'Clean Eating', badge_sugar_30_d:'30 days no sugar',
+    // Coffee badges
+    badge_coffee_7:'Caffeine-Free Wk', badge_coffee_7_d:'7 days no coffee',
+    badge_coffee_30:'Steel Nerves', badge_coffee_30_d:'30 days no coffee',
+    // Workout badges
+    badge_workout_1:'First Step', badge_workout_1_d:'First workout',
+    badge_workout_10:'In Rhythm', badge_workout_10_d:'10 workouts',
+    badge_workout_25:'Dedicated', badge_workout_25_d:'25 workouts',
+    badge_workout_50:'Gym Veteran', badge_workout_50_d:'50 workouts',
+    badge_workout_100:'Legend', badge_workout_100_d:'100 workouts',
+    // Consistency badges
+    badge_rings_3:'Triple Streak', badge_rings_3_d:'3 days all rings closed',
+    badge_rings_7:'Perfect Week', badge_rings_7_d:'7 days all rings closed',
+    ach_section_habits:'Habits', ach_section_fitness:'Fitness', ach_section_consistency:'Consistency',
   },
   es: {
     nav_sleep:'Sueño', nav_activity:'Actividad', nav_supps:'Supl.',
@@ -713,6 +868,32 @@ const TRANSLATIONS = {
     badge_iron_will:'Voluntad de Hierro', badge_iron_will_d:'4 entrenos/semana',
     badge_athlete:'Atleta', badge_athlete_d:'20 días de entrenamiento',
     badge_cyborg:'Cyborg', badge_cyborg_d:'30 días de entrenamiento',
+    // Phase 2 - Habits & Achievements
+    no_sugar:'Sin azúcar', no_coffee:'Sin café',
+    sugar_days:'días sin azúcar', coffee_days:'días sin café',
+    habit_offset_label:'Ya llevo', habit_offset_unit:'días',
+    recovery_constructor:'Mis rituales', recovery_template_add:'+ Añadir', recovery_no_templates:'Añade rituales en Perfil',
+    badge_smoke_7:'1ª semana', badge_smoke_7_d:'7 días sin fumar',
+    badge_smoke_21:'Hábito roto', badge_smoke_21_d:'21 días sin nicotina',
+    badge_smoke_50:'Pulmones nuevos', badge_smoke_50_d:'50 días sin fumar',
+    badge_smoke_100:'Campeón', badge_smoke_100_d:'100 días sin nicotina',
+    badge_smoke_365:'Fénix', badge_smoke_365_d:'1 año sin fumar',
+    badge_alco_7:'Semana sobria', badge_alco_7_d:'7 días sin alcohol',
+    badge_alco_30:'Mes limpio', badge_alco_30_d:'30 días sin alcohol',
+    badge_alco_100:'Mente clara+', badge_alco_100_d:'100 días sin alcohol',
+    badge_alco_365:'Año sobrio', badge_alco_365_d:'365 días sin alcohol',
+    badge_sugar_7:'7 días sin azúcar', badge_sugar_7_d:'1 semana sin azúcar',
+    badge_sugar_30:'Nutrición limpia', badge_sugar_30_d:'30 días sin azúcar',
+    badge_coffee_7:'7 días sin café', badge_coffee_7_d:'1 semana sin cafeína',
+    badge_coffee_30:'Nervios de acero', badge_coffee_30_d:'30 días sin café',
+    badge_workout_1:'Primer paso', badge_workout_1_d:'Primer entrenamiento',
+    badge_workout_10:'En ritmo', badge_workout_10_d:'10 entrenamientos',
+    badge_workout_25:'Dedicado', badge_workout_25_d:'25 entrenamientos',
+    badge_workout_50:'Veterano', badge_workout_50_d:'50 entrenamientos',
+    badge_workout_100:'Leyenda', badge_workout_100_d:'100 entrenamientos',
+    badge_rings_3:'Triple racha', badge_rings_3_d:'3 días todos los anillos',
+    badge_rings_7:'Semana perfecta', badge_rings_7_d:'7 días todos los anillos',
+    ach_section_habits:'Hábitos', ach_section_fitness:'Fitness', ach_section_consistency:'Consistencia',
     badge_unlocked:'OBTENIDO ✓', achievement_toast:'🏆 Logro: ',
   },
   pt: {
@@ -941,13 +1122,13 @@ function AuthGate() {
       if (data) {
         // Merge profile: defaults first, then Supabase data on top
         // This guarantees xp/level always exist for returning users
-        const profileDefaults = { xp: 0, level: 1 };
+        const profileDefaults = getProfile(); // includes recoveryTemplates + xp/level
         ud = {
-          logs:         data.logs                              || {},
+          logs:         data.logs                                            || {},
           profile:      { ...profileDefaults, ...(data.profile || {}) },
-          settings:     data.settings                         || getSettings(),
-          habits:       data.habits                           || getHabits(),
-          achievements: data.achievements                     || {},
+          settings:     data.settings                                        || getSettings(),
+          habits:       { ...getHabits(), ...(data.habits || {}) },          // deep merge: add noSugar/noCoffee for old users
+          achievements: data.achievements                                    || {},
         };
       } else {
         // New user — seed with any existing local data, then insert
@@ -1355,6 +1536,34 @@ function SettingsScreen({ settings, onSettingsChange, onLogout }) {
   );
 }
 
+// ─── Recovery Template Inline Adder ──────────────────────────────
+function AddTemplateInline({ onAdd }) {
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState('');
+  const [emoji, setEmoji] = useState('🔄');
+  if (!open) return (
+    <button className="recovery-add-btn" onClick={()=>setOpen(true)}>+ Добавить ритуал</button>
+  );
+  return (
+    <div style={{background:'var(--surface2)',borderRadius:12,padding:12,marginTop:8}}>
+      <div style={{display:'flex',gap:8,marginBottom:8}}>
+        <input className="input" style={{width:52,textAlign:'center',fontSize:22,padding:'6px',flexShrink:0}}
+          placeholder="🔄" value={emoji} onChange={e=>setEmoji(e.target.value)}/>
+        <input className="input" placeholder="Ледяная ванна..." value={name} onChange={e=>setName(e.target.value)}/>
+      </div>
+      <div style={{display:'flex',gap:8}}>
+        <button className="btn btn-secondary btn-sm" style={{flex:1}}
+          onClick={()=>{setOpen(false);setName('');setEmoji('🔄');}}>Отмена</button>
+        <button className="btn btn-primary btn-sm" style={{flex:2}} onClick={()=>{
+          if(!name.trim())return;
+          onAdd({id:String(Date.now()),name:name.trim(),emoji:emoji.trim()||'🔄'});
+          setName('');setEmoji('🔄');setOpen(false);
+        }}>Добавить</button>
+      </div>
+    </div>
+  );
+}
+
 // ─── Profile Modal ────────────────────────────────────────────────
 function ProfileModal({ onClose, status, habits, setHabits, logs, settings, onSettingsChange, onLogout, xp }) {
   const t = useT();
@@ -1566,7 +1775,25 @@ function ProfileModal({ onClose, status, habits, setHabits, logs, settings, onSe
                   </div>
                 </div>
               )}
+            </div>{/* end inbody-card */}
+
+            <div className="section-group-title" style={{marginTop:4}}>{t('recovery_constructor')}</div>
+            <div className="card">
+              <div style={{fontSize:12,color:'var(--text3)',marginBottom:10,lineHeight:1.6}}>
+                Создай личные ритуалы — они появятся на вкладке «Восстановление»
+              </div>
+              {(profile.recoveryTemplates||[]).map((tmpl,idx)=>(
+                <div key={tmpl.id} className="recovery-template-row">
+                  <span style={{fontSize:22,width:34,textAlign:'center',flexShrink:0}}>{tmpl.emoji}</span>
+                  <span style={{flex:1,fontSize:15,fontWeight:500,color:'var(--text)'}}>{tmpl.name}</span>
+                  <button
+                    onClick={()=>setProfile(p=>({...p,recoveryTemplates:p.recoveryTemplates.filter((_,i)=>i!==idx)}))}
+                    style={{background:'none',border:'none',color:'var(--text3)',fontSize:18,cursor:'pointer',padding:'0 4px'}}>✕</button>
+                </div>
+              ))}
+              <AddTemplateInline onAdd={tmpl=>setProfile(p=>({...p,recoveryTemplates:[...(p.recoveryTemplates||[]),tmpl]}))}/>
             </div>
+
           </div>
         )}
       </div>
@@ -2040,39 +2267,56 @@ function WorkoutScreen({ state, update, logs, onXP }) {
 // ─── Screen 6: Recovery ──────────────────────────────────────────
 function RecoveryScreen({ state, update }) {
   const t = useT();
-  const { recovery } = state;
-  const r = recovery;
-  const MODALITIES=[{key:'sauna',label:t('sauna'),icon:'🔥',color:'var(--orange)'},{key:'massage',label:t('massage'),icon:'💆',color:'var(--purple)'},{key:'pressotherapy',label:t('pressotherapy'),icon:'🦵',color:'var(--cyan)'}];
+  const profile = getProfile();
+  const templates = (profile.recoveryTemplates && profile.recoveryTemplates.length > 0)
+    ? profile.recoveryTemplates
+    : [{id:'sauna',name:'Сауна',emoji:'🔥'},{id:'massage',name:'Массаж',emoji:'💆'},{id:'pressotherapy',name:'Прессотерапия',emoji:'🦵'}];
+  const recoveryItems = state.recoveryItems || {};
+  const recovery = state.recovery || { notes: '' };
+  const doneCount = templates.filter(tmpl => recoveryItems[tmpl.id]).length;
   return (
     <div className="screen-content fade-up">
       <div className="section-title">{t('recovery_title')}</div>
-      <div style={{display:'flex',flexDirection:'column',gap:10}}>
-        {MODALITIES.map(m=>(
-          <div key={m.key} className="recovery-card">
-            <div style={{display:'flex',alignItems:'center',gap:12}}>
-              <div style={{width:44,height:44,borderRadius:12,background:r[m.key]?m.color:'var(--surface2)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:22,transition:'background .2s'}}>{m.icon}</div>
-              <div>
-                <div style={{fontSize:16,fontWeight:600,color:r[m.key]?m.color:'var(--text)'}}>{m.label}</div>
-                <div style={{fontSize:12,color:'var(--text3)'}}>{r[m.key]?t('done'):t('not_done')}</div>
+      {templates.length === 0 ? (
+        <div className="card" style={{textAlign:'center',color:'var(--text3)',padding:'32px 16px'}}>
+          <div style={{fontSize:36,marginBottom:8}}>🔄</div>
+          <div style={{fontSize:15}}>{t('recovery_no_templates')}</div>
+        </div>
+      ) : (
+        <div style={{display:'flex',flexDirection:'column',gap:10}}>
+          {templates.map(tmpl => {
+            const done = !!recoveryItems[tmpl.id];
+            return (
+              <div key={tmpl.id} className="recovery-card">
+                <div style={{display:'flex',alignItems:'center',gap:12}}>
+                  <div style={{width:44,height:44,borderRadius:12,background:done?'rgba(0,229,255,.22)':'var(--surface2)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:22,transition:'background .2s'}}>{tmpl.emoji}</div>
+                  <div>
+                    <div style={{fontSize:16,fontWeight:600,color:done?'var(--cyan)':'var(--text)'}}>{tmpl.name}</div>
+                    <div style={{fontSize:12,color:'var(--text3)'}}>{done?t('done'):t('not_done')}</div>
+                  </div>
+                </div>
+                <Toggle checked={done} onChange={()=>update('recoveryItems',{...recoveryItems,[tmpl.id]:!done})}/>
               </div>
-            </div>
-            <Toggle checked={r[m.key]} onChange={v=>update('recovery',{...r,[m.key]:v})}/>
-          </div>
-        ))}
-      </div>
+            );
+          })}
+        </div>
+      )}
       <div className="card">
         <div className="label">{t('day_notes')}</div>
-        <textarea className="input" placeholder="Самочувствие, события дня..." value={r.notes} onChange={e=>update('recovery',{...r,notes:e.target.value})}/>
-        {r.notes&&<div style={{fontSize:12,color:'var(--text3)',marginTop:4,textAlign:'right'}}>{r.notes.length} символов</div>}
+        <textarea className="input" placeholder="Самочувствие, события дня..." value={recovery.notes} onChange={e=>update('recovery',{...recovery,notes:e.target.value})}/>
+        {recovery.notes&&<div style={{fontSize:12,color:'var(--text3)',marginTop:4,textAlign:'right'}}>{recovery.notes.length} символов</div>}
       </div>
-      <div className="card" style={{background:'linear-gradient(135deg,rgba(191,90,242,.08),rgba(0,229,255,.08))'}}>
-        <div className="label">{t('recovery_summary')}</div>
-        <div style={{display:'flex',gap:8,flexWrap:'wrap',marginTop:8}}>
-          {MODALITIES.map(m=>(
-            <div key={m.key} className="pill" style={{background:r[m.key]?'rgba(0,229,255,.1)':'var(--surface2)',color:r[m.key]?m.color:'var(--text3)'}}>{m.icon} {m.label}</div>
-          ))}
+      {templates.length > 0 && (
+        <div className="card" style={{background:'linear-gradient(135deg,rgba(191,90,242,.08),rgba(0,229,255,.08))'}}>
+          <div className="label">{t('recovery_summary')}</div>
+          <div style={{display:'flex',gap:8,flexWrap:'wrap',marginTop:8}}>
+            {templates.map(tmpl=>(
+              <div key={tmpl.id} className="pill" style={{background:recoveryItems[tmpl.id]?'rgba(0,229,255,.1)':'var(--surface2)',color:recoveryItems[tmpl.id]?'var(--cyan)':'var(--text3)'}}>{tmpl.emoji} {tmpl.name}</div>
+            ))}
+          </div>
+          <div style={{marginTop:8,fontSize:12,color:'var(--text3)'}}>{doneCount}/{templates.length} выполнено</div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
@@ -2081,65 +2325,104 @@ function RecoveryScreen({ state, update }) {
 function HabitsScreen({ habits, setHabits, showToast }) {
   const t = useT();
   const [relapseTarget, setRelapseTarget] = useState(null);
-  const smokeDays=habits.noSmoking.active?calcStreakDays(habits.noSmoking.startDate):habits.noSmoking.streakDays;
-  const alcoholDays=habits.noAlcohol.active?calcStreakDays(habits.noAlcohol.startDate):habits.noAlcohol.streakDays;
-  const handleToggle=(key,val)=>{
-    if(!val){setRelapseTarget(key);}
-    else{const u={...habits,[key]:{active:true,startDate:TODAY,streakDays:0}};setHabits(u);saveHabits(u);showToast('💪 Отсчёт начат!');}
-  };
-  const confirmRelapse=()=>{const u={...habits,[relapseTarget]:{active:false,startDate:null,streakDays:0}};setHabits(u);saveHabits(u);setRelapseTarget(null);showToast('😔 '+t('confirm_relapse'));};
-  const HABITS_CONFIG=[
-    {key:'noSmoking',label:t('no_smoking'),emoji:'🚬',streakDays:smokeDays,active:habits.noSmoking.active,color:'#A8FF3E',milestones:[{days:7,label:'1 нед.'},{days:30,label:'1 мес.'},{days:100,label:'100 дн.'}],counterLabel:t('smoke_days')},
-    {key:'noAlcohol',label:t('no_alcohol'),emoji:'🍷',streakDays:alcoholDays,active:habits.noAlcohol.active,color:'#00E5FF',milestones:[{days:30,label:'1 мес.'},{days:100,label:'100 дн.'},{days:365,label:'1 год'}],counterLabel:t('alcohol_days')},
+  const [pendingActivation, setPendingActivation] = useState(null);
+  const [pendingOffset, setPendingOffset] = useState('0');
+  const getH = k => ({ active:false, startDate:null, streakDays:0, offset:0, ...(habits[k]||{}) });
+  const HABITS_CONFIG = [
+    { key:'noSmoking', label:t('no_smoking'), emoji:'🚭', color:'#A8FF3E',
+      milestones:[{days:7,label:'1 нед.'},{days:21,label:'21 дн.'},{days:50,label:'50 дн.'},{days:100,label:'100 дн.'},{days:365,label:'1 год'}],
+      counterLabel:t('smoke_days') },
+    { key:'noAlcohol', label:t('no_alcohol'), emoji:'🍷', color:'#00E5FF',
+      milestones:[{days:7,label:'1 нед.'},{days:30,label:'1 мес.'},{days:100,label:'100 дн.'},{days:365,label:'1 год'}],
+      counterLabel:t('alcohol_days') },
+    { key:'noSugar',   label:t('no_sugar'),   emoji:'🍬', color:'#FF9F0A',
+      milestones:[{days:7,label:'1 нед.'},{days:30,label:'1 мес.'},{days:100,label:'100 дн.'}],
+      counterLabel:t('sugar_days') },
+    { key:'noCoffee',  label:t('no_coffee'),  emoji:'☕', color:'#BF5AF2',
+      milestones:[{days:7,label:'1 нед.'},{days:30,label:'1 мес.'},{days:100,label:'100 дн.'}],
+      counterLabel:t('coffee_days') },
   ];
+  const handleToggle = (key, val) => {
+    if (!val) { setRelapseTarget(key); }
+    else { setPendingActivation(key); setPendingOffset('0'); }
+  };
+  const confirmActivation = (key) => {
+    const offset = Math.max(0, parseInt(pendingOffset,10)||0);
+    const u = {...habits,[key]:{active:true,startDate:TODAY,streakDays:0,offset}};
+    setHabits(u); saveHabits(u); setPendingActivation(null);
+    showToast('💪 Отсчёт начат!');
+  };
+  const confirmRelapse = () => {
+    const u = {...habits,[relapseTarget]:{active:false,startDate:null,streakDays:0,offset:0}};
+    setHabits(u); saveHabits(u); setRelapseTarget(null);
+    showToast('😔 '+t('confirm_relapse'));
+  };
+  const relapseConfig = HABITS_CONFIG.find(h=>h.key===relapseTarget);
   return (
     <div className="screen-content fade-up">
       <div className="section-title">{t('habits_title')}</div>
-      {HABITS_CONFIG.map(h=>(
-        <div key={h.key} className="card">
-          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',paddingBottom:14,marginBottom:14,borderBottom:'1px solid var(--sep)'}}>
-            <div style={{display:'flex',alignItems:'center',gap:12}}>
-              <div style={{width:50,height:50,borderRadius:14,flexShrink:0,background:h.active?`${h.color}22`:'var(--surface2)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:26,transition:'background .3s'}}>{h.emoji}</div>
-              <div>
-                <div style={{fontSize:17,fontWeight:700}}>{h.label}</div>
-                <div style={{fontSize:12,color:h.active?h.color:'var(--text3)',fontWeight:600,marginTop:1}}>{h.active?t('tracking_active'):t('tracking_inactive')}</div>
-              </div>
-            </div>
-            <Toggle checked={h.active} onChange={v=>handleToggle(h.key,v)}/>
-          </div>
-          <div style={{textAlign:'center',padding:'6px 0 18px'}}>
-            <div className="streak-display" style={{color:h.active&&h.streakDays>0?h.color:'var(--text3)'}}>{h.streakDays}</div>
-            <div style={{fontSize:14,color:'var(--text3)',marginTop:4,fontWeight:500}}>{h.counterLabel}</div>
-            {h.active&&h.streakDays===0&&<div style={{fontSize:12,color:'var(--text3)',marginTop:6}}>{t('first_day')}</div>}
-          </div>
-          <div style={{display:'flex',flexDirection:'column',gap:8}}>
-            {h.milestones.map((ms,i)=>{
-              const prevDays=i===0?0:h.milestones[i-1].days;
-              const progress=Math.min(Math.max((h.streakDays-prevDays)/(ms.days-prevDays),0),1);
-              const reached=h.streakDays>=ms.days;
-              return(
-                <div key={ms.days}>
-                  <div style={{display:'flex',justifyContent:'space-between',marginBottom:4}}>
-                    <span style={{fontSize:11,fontWeight:700,color:reached?h.color:'var(--text3)'}}>{reached?'✅':'○'} {ms.label} ({ms.days} дн.)</span>
-                    <span style={{fontSize:11,color:'var(--text3)'}}>{reached?'✓':`${h.streakDays}/${ms.days}`}</span>
-                  </div>
-                  <div className="progress-bar-bg" style={{height:5}}><div className="progress-bar-fill" style={{width:`${progress*100}%`,background:reached?h.color:`${h.color}66`}}/></div>
+      {HABITS_CONFIG.map(h => {
+        const habit = getH(h.key);
+        const total = totalHabitDays(habit);
+        const isPending = pendingActivation === h.key;
+        return (
+          <div key={h.key} className="card">
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',paddingBottom:14,marginBottom:14,borderBottom:'1px solid var(--sep)'}}>
+              <div style={{display:'flex',alignItems:'center',gap:12}}>
+                <div style={{width:50,height:50,borderRadius:14,flexShrink:0,background:habit.active?`${h.color}22`:'var(--surface2)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:26,transition:'background .3s'}}>{h.emoji}</div>
+                <div>
+                  <div style={{fontSize:17,fontWeight:700}}>{h.label}</div>
+                  <div style={{fontSize:12,color:habit.active?h.color:'var(--text3)',fontWeight:600,marginTop:1}}>{habit.active?t('tracking_active'):t('tracking_inactive')}</div>
                 </div>
-              );
-            })}
-          </div>
-          {h.active&&h.streakDays>0&&(()=>{
-            const nextMs=h.milestones.find(ms=>h.streakDays<ms.days);
-            return nextMs?(
-              <div style={{marginTop:12,padding:'10px 12px',borderRadius:12,background:`${h.color}11`,fontSize:12,fontWeight:600,color:h.color,textAlign:'center'}}>
-                {t('days_left')} «{nextMs.label}» осталось {nextMs.days-h.streakDays} дн. {t('hold_on')}
               </div>
-            ):(
-              <div style={{marginTop:12,padding:'10px 12px',borderRadius:12,background:`${h.color}22`,fontSize:12,fontWeight:700,color:h.color,textAlign:'center'}}>{t('all_milestones')}</div>
-            );
-          })()}
-        </div>
-      ))}
+              <Toggle checked={habit.active} onChange={v=>handleToggle(h.key,v)}/>
+            </div>
+            {isPending && (
+              <div style={{background:'var(--surface2)',borderRadius:12,padding:14,marginBottom:14}}>
+                <div style={{fontSize:13,fontWeight:600,color:'var(--text2)',marginBottom:10}}>{t('habit_offset_label')} ({t('habit_offset_unit')}):</div>
+                <div style={{display:'flex',gap:10,alignItems:'center'}}>
+                  <input type="number" min="0" className="input habit-offset-input"
+                    value={pendingOffset} onChange={e=>setPendingOffset(e.target.value)}/>
+                  <span style={{fontSize:13,color:'var(--text3)',fontWeight:500,flex:1}}>{t('habit_offset_unit')}</span>
+                  <button className="btn btn-primary btn-sm" style={{flex:2}} onClick={()=>confirmActivation(h.key)}>Начать ✓</button>
+                </div>
+              </div>
+            )}
+            <div style={{textAlign:'center',padding:'6px 0 18px'}}>
+              <div className="streak-display" style={{color:habit.active&&total>0?h.color:'var(--text3)'}}>{total}</div>
+              <div style={{fontSize:14,color:'var(--text3)',marginTop:4,fontWeight:500}}>{h.counterLabel}</div>
+              {habit.active&&total===0&&<div style={{fontSize:12,color:'var(--text3)',marginTop:6}}>{t('first_day')}</div>}
+              {(parseInt(habit.offset,10)||0)>0&&<div style={{fontSize:11,color:h.color,marginTop:3}}>+{habit.offset} дн. зачтено</div>}
+            </div>
+            <div style={{display:'flex',flexDirection:'column',gap:8}}>
+              {h.milestones.map((ms,i)=>{
+                const prevDays=i===0?0:h.milestones[i-1].days;
+                const progress=Math.min(Math.max((total-prevDays)/(ms.days-prevDays),0),1);
+                const reached=total>=ms.days;
+                return(
+                  <div key={ms.days}>
+                    <div style={{display:'flex',justifyContent:'space-between',marginBottom:4}}>
+                      <span style={{fontSize:11,fontWeight:700,color:reached?h.color:'var(--text3)'}}>{reached?'✅':'○'} {ms.label} ({ms.days} дн.)</span>
+                      <span style={{fontSize:11,color:'var(--text3)'}}>{reached?'✓':`${total}/${ms.days}`}</span>
+                    </div>
+                    <div className="progress-bar-bg" style={{height:5}}><div className="progress-bar-fill" style={{width:`${progress*100}%`,background:reached?h.color:`${h.color}66`}}/></div>
+                  </div>
+                );
+              })}
+            </div>
+            {habit.active&&total>0&&(()=>{
+              const nextMs=h.milestones.find(ms=>total<ms.days);
+              return nextMs?(
+                <div style={{marginTop:12,padding:'10px 12px',borderRadius:12,background:`${h.color}11`,fontSize:12,fontWeight:600,color:h.color,textAlign:'center'}}>
+                  {t('days_left')} «{nextMs.label}» осталось {nextMs.days-total} дн. {t('hold_on')}
+                </div>
+              ):(
+                <div style={{marginTop:12,padding:'10px 12px',borderRadius:12,background:`${h.color}22`,fontSize:12,fontWeight:700,color:h.color,textAlign:'center'}}>{t('all_milestones')}</div>
+              );
+            })()}
+          </div>
+        );
+      })}
       <div className="card" style={{background:'linear-gradient(135deg,rgba(168,255,62,.06),rgba(0,229,255,.05))'}}>
         <div style={{fontSize:15,fontWeight:700,marginBottom:8}}>{t('habit_tip_title')}</div>
         <div style={{fontSize:13,color:'var(--text2)',lineHeight:1.7}}>{t('habit_tip')}</div>
@@ -2152,7 +2435,7 @@ function HabitsScreen({ habits, setHabits, showToast }) {
               <div style={{fontSize:56,marginBottom:14,lineHeight:1}}>😔</div>
               <div style={{fontSize:21,fontWeight:800,marginBottom:10,letterSpacing:'-.5px'}}>{t('reset_title')}</div>
               <div style={{fontSize:14,color:'var(--text2)',lineHeight:1.65}}>
-                Текущая серия: <strong style={{color:relapseTarget==='noSmoking'?'#A8FF3E':'#00E5FF',fontSize:16}}>{relapseTarget==='noSmoking'?smokeDays:alcoholDays} дн.</strong>
+                Текущая серия: <strong style={{color:relapseConfig?.color||'var(--cyan)',fontSize:16}}>{totalHabitDays(getH(relapseTarget))} дн.</strong>
               </div>
             </div>
             <div style={{display:'flex',gap:10}}>
@@ -2166,7 +2449,7 @@ function HabitsScreen({ habits, setHabits, showToast }) {
   );
 }
 
-// ─── Achievements Board ────────────────────────────────────────────
+// ─── Achievements Board ──────────────────────────────────────────────────────
 function AchievementsBoard({ habits, logs, showToast }) {
   const t = useT();
   const [newlyUnlocked, setNewlyUnlocked] = useState({});
@@ -2181,29 +2464,50 @@ function AchievementsBoard({ habits, logs, showToast }) {
       if(badge)showToast(t('achievement_toast')+t(badge.name_key));
     }
   },[unlocked]);
-  const unlockedCount=Object.values(unlocked).filter(Boolean).length;
-  return(
+  const unlockedCount = Object.values(unlocked).filter(Boolean).length;
+  const CATEGORIES = [
+    { id:'habits',      label:t('ach_section_habits'),      icon:'🧠' },
+    { id:'fitness',     label:t('ach_section_fitness'),     icon:'💪' },
+    { id:'consistency', label:t('ach_section_consistency'), icon:'🎯' },
+  ];
+  return (
     <div>
-      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}}>
-        <div style={{fontSize:17,fontWeight:700}}>{t('achievements_board')}</div>
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:16}}>
+        <div style={{fontSize:17,fontWeight:700}}>🏆 Доска достижений</div>
         <div className="pill" style={{background:unlockedCount>0?'rgba(168,255,62,.15)':'var(--surface2)',color:unlockedCount>0?'var(--lime)':'var(--text3)'}}>{unlockedCount}/{BADGE_DEFS.length}</div>
       </div>
-      <div className="achievement-grid">
-        {BADGE_DEFS.map(b=>{
-          const isU=unlocked[b.id],justU=!!newlyUnlocked[b.id];
-          return(
-            <div key={b.id} className={`badge-card${isU?' unlocked':' locked'}${justU?' just-unlocked':''}`}>
-              <div className="badge-emoji">{b.emoji}</div>
-              <div className="badge-name">{t(b.name_key)}</div>
-              <div className="badge-desc">{t(b.desc_key)}</div>
-              {isU&&<div className="badge-unlocked-tag" style={{color:b.color}}>{t('badge_unlocked')}</div>}
+      {CATEGORIES.map(cat => {
+        const catBadges = BADGE_DEFS.filter(b=>b.cat===cat.id);
+        const catUnlocked = catBadges.filter(b=>unlocked[b.id]).length;
+        return (
+          <div key={cat.id} className="ach-category">
+            <div className="ach-cat-title">
+              <span>{cat.icon}</span>
+              <span>{cat.label}</span>
+              <span style={{marginLeft:'auto',fontSize:11,fontWeight:600,color:'var(--text3)'}}>{catUnlocked}/{catBadges.length}</span>
             </div>
-          );
-        })}
-      </div>
+            <div className="ach-grid">
+              {catBadges.map(b => {
+                const isU=unlocked[b.id], justU=!!newlyUnlocked[b.id];
+                return (
+                  <div key={b.id}
+                    className={`ach-card${isU?' unlocked':' locked'}${justU?' just-unlocked':''}`}
+                    style={isU?{borderColor:`${b.color}55`}:undefined}>
+                    <div className="ach-emoji">{b.emoji}</div>
+                    <div className="ach-name">{t(b.name_key)}</div>
+                    <div className="ach-desc">{t(b.desc_key)}</div>
+                    {isU&&<div className="ach-tag" style={{color:b.color}}>✓</div>}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
+
 
 // ─── Screen 8: Stats ─────────────────────────────────────────────
 function StatsScreen({ logs, habits, showToast, xp = 0 }) {
@@ -2211,8 +2515,11 @@ function StatsScreen({ logs, habits, showToast, xp = 0 }) {
   const weekCount=useMemo(()=>countWorkoutsThisWeek(logs),[logs]);
   const monthCount=useMemo(()=>countWorkoutsThisMonth(logs),[logs]);
   const totalCount=useMemo(()=>countWorkoutDays(logs),[logs]);
-  const smokeDays=habits.noSmoking.active?calcStreakDays(habits.noSmoking.startDate):habits.noSmoking.streakDays;
-  const alcoholDays=habits.noAlcohol.active?calcStreakDays(habits.noAlcohol.startDate):habits.noAlcohol.streakDays;
+  const getH=k=>({active:false,startDate:null,streakDays:0,offset:0,...(habits[k]||{})});
+  const smokeDays=totalHabitDays(getH('noSmoking'));
+  const alcoholDays=totalHabitDays(getH('noAlcohol'));
+  const sugarDays=totalHabitDays(getH('noSugar'));
+  const coffeeDays=totalHabitDays(getH('noCoffee'));
   const weightData=useMemo(()=>{const a=[];for(let i=13;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);const iso=isoDate(d);const wv=logs[iso]&&logs[iso].weight?parseFloat(logs[iso].weight):null;a.push({iso,w:wv,day:d.getDate()});}return a;},[logs]);
   const validW=weightData.filter(p=>p.w!==null);
   const minW=validW.length?Math.min(...validW.map(p=>p.w))-.5:60;
@@ -2287,6 +2594,10 @@ function StatsScreen({ logs, habits, showToast, xp = 0 }) {
           <div style={{textAlign:'center',flex:1}}><div style={{fontSize:30,fontWeight:900,color:'#A8FF3E',letterSpacing:'-1px'}}>{smokeDays}</div><div style={{fontSize:11,color:'var(--text3)',marginTop:2}}>{t('smoke_days')}</div></div>
           <div style={{width:1,background:'var(--sep)'}}/>
           <div style={{textAlign:'center',flex:1}}><div style={{fontSize:30,fontWeight:900,color:'var(--cyan)',letterSpacing:'-1px'}}>{alcoholDays}</div><div style={{fontSize:11,color:'var(--text3)',marginTop:2}}>{t('alcohol_days')}</div></div>
+          </div>
+          <div style={{display:'flex',gap:16,justifyContent:'center',marginTop:12}}>
+            <div style={{textAlign:'center',flex:1}}><div style={{fontSize:30,fontWeight:900,color:'#FF9F0A',letterSpacing:'-1px'}}>{sugarDays}</div><div style={{fontSize:11,color:'var(--text3)',marginTop:2}}>{t('sugar_days')}</div></div>
+            <div style={{textAlign:'center',flex:1}}><div style={{fontSize:30,fontWeight:900,color:'#BF5AF2',letterSpacing:'-1px'}}>{coffeeDays}</div><div style={{fontSize:11,color:'var(--text3)',marginTop:2}}>{t('coffee_days')}</div></div>
         </div>
       </div>
       {validW.length>=2&&(
@@ -2313,8 +2624,11 @@ function StatsScreen({ logs, habits, showToast, xp = 0 }) {
 // ─── Export ───────────────────────────────────────────────────────
 function generateLog(state, profile) {
   const habits=getHabits();
-  const smokeDays=habits.noSmoking.active?calcStreakDays(habits.noSmoking.startDate):habits.noSmoking.streakDays;
-  const alcoholDays=habits.noAlcohol.active?calcStreakDays(habits.noAlcohol.startDate):habits.noAlcohol.streakDays;
+  const getH=k=>({active:false,startDate:null,streakDays:0,offset:0,...(habits[k]||{})});
+  const smokeDays=totalHabitDays(getH('noSmoking'));
+  const alcoholDays=totalHabitDays(getH('noAlcohol'));
+  const sugarDays=totalHabitDays(getH('noSugar'));
+  const coffeeDays=totalHabitDays(getH('noCoffee'));
   const logs=getAllLogs(), totalWorkouts=countWorkoutDays(logs);
   const d=new Date(state.date+'T12:00:00');
   const dateStr=d.toLocaleDateString('ru-RU',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
@@ -2327,7 +2641,7 @@ function generateLog(state, profile) {
   const c=state.workout.cardio;
   const cardioLines=Object.values(c).some(v=>v)?`  ${c.machine||'—'} | Угол:${c.angle||'—'} | ${c.speed||'—'}\n  ${c.duration||'—'} мин | ${c.distance||'—'} км`:'  — не выполнялось';
   const exLines=state.workout.exercises.length?state.workout.exercises.map(ex=>`  ▸ ${ex.name}\n${ex.sets.map((s,i)=>`      Подход ${i+1}: ${s.weight||'?'}кг × ${s.reps||'?'} повт.${s.dropset?' [DROP]':''}`).join('\n')||'      — нет подходов'}`).join('\n'):'  — не выполнялось';
-  return`╔══════════════════════════════════════════════╗\n║        CYBORG OS v1.8 — ДНЕВНОЙ ЛОГ         ║\n╚══════════════════════════════════════════════╝\n\n📅 ${dateStr.toUpperCase()}\n👤 ${profile.name||'—'} | ${profile.age||'—'} лет | ${profile.height||'—'} см | Цель: ${profile.goal||'—'}\n🏆 Всего тренировок: ${totalWorkouts}\n\n🧠 ПРИВЫЧКИ\n  🚬 Без курения:  ${habits.noSmoking.active?`${smokeDays} дн. (активно)`:'—'}\n  🍷 Без алкоголя: ${habits.noAlcohol.active?`${alcoholDays} дн. (активно)`:'—'}\n\n🌙 СОН\n  ${state.sleep.hours}ч | ${stars} | ЦНС ${state.energy}/10 | Готовность ${readiness}%\n\n⚡ АКТИВНОСТЬ\n  ${state.activity.activeKcal||'—'} кк активных | ЧСС ${state.activity.avgHR||'—'} | Вес ${state.weight||'—'} кг\n\n💊 БАДЫ\n${suppLines}\n\n🥗 ПИТАНИЕ\n  Вода: ${(state.nutrition.waterMl/1000).toFixed(2)}л\n${mealLines}\n  ИТОГО: ${totals.kcal} кк | Б:${totals.protein}г Ж:${totals.fat}г У:${totals.carbs}г\n  БАЛАНС: ${balance>0?'+':''}${balance} кк\n\n💪 ТРЕНИРОВКА\n  Кардио:\n${cardioLines}\n  Силовая:\n${exLines}\n\n🔄 ВОССТАНОВЛЕНИЕ\n  ${state.recovery.sauna?'✓':'✗'} Сауна | ${state.recovery.massage?'✓':'✗'} Массаж | ${state.recovery.pressotherapy?'✓':'✗'} Прессотерапия\n  ${state.recovery.notes||'— без заметок'}\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nCyborg OS v1.8 | ${new Date().toLocaleString('ru-RU')}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
+  return`╔══════════════════════════════════════════════╗\n║        CYBORG OS v1.8 — ДНЕВНОЙ ЛОГ         ║\n╚══════════════════════════════════════════════╝\n\n📅 ${dateStr.toUpperCase()}\n👤 ${profile.name||'—'} | ${profile.age||'—'} лет | ${profile.height||'—'} см | Цель: ${profile.goal||'—'}\n🏆 Всего тренировок: ${totalWorkouts}\n\n🧠 ПРИВЫЧКИ\n  🚬 Без курения:  ${habits.noSmoking.active?`${smokeDays} дн. (активно)`:'—'}\n  🍷 Без алкоголя: ${habits.noAlcohol.active?`${alcoholDays} дн. (активно)`:'—'}\n\n🌙 СОН\n  ${state.sleep.hours}ч | ${stars} | ЦНС ${state.energy}/10 | Готовность ${readiness}%\n\n⚡ АКТИВНОСТЬ\n  ${state.activity.activeKcal||'—'} кк активных | ЧСС ${state.activity.avgHR||'—'} | Вес ${state.weight||'—'} кг\n\n💊 БАДЫ\n${suppLines}\n\n🥗 ПИТАНИЕ\n  Вода: ${(state.nutrition.waterMl/1000).toFixed(2)}л\n${mealLines}\n  ИТОГО: ${totals.kcal} кк | Б:${totals.protein}г Ж:${totals.fat}г У:${totals.carbs}г\n  БАЛАНС: ${balance>0?'+':''}${balance} кк\n\n💪 ТРЕНИРОВКА\n  Кардио:\n${cardioLines}\n  Силовая:\n${exLines}\n\n🔄 ВОССТАНОВЛЕНИЕ\n  ${Object.entries(state.recoveryItems||{}).filter(([,v])=>v).map(([k])=>k).join(', ')||'—'}\n  Заметки: ${state.recovery?.notes||'—'}\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nCyborg OS v1.8 | ${new Date().toLocaleString('ru-RU')}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
 }
 
 function useExportLog(state, showToast) {
