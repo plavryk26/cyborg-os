@@ -2222,7 +2222,7 @@ function WorkoutScreen({ state, update, logs, onXP }) {
                 onChange={e=>{setInlineInput(e.target.value);setShowSugg(true);}}
                 autoFocus
                 onFocus={()=>setShowSugg(true)}
-                onBlur={()=>setShowSugg(false)}
+                onBlur={()=>setTimeout(()=>setShowSugg(false),150)}
                 onKeyDown={e=>{
                   if(e.key==='Enter'){addExercise(inlineInput);setShowSugg(false);}
                   if(e.key==='Escape'){setShowSugg(false);setInlineInput('');}
@@ -2267,9 +2267,17 @@ function WorkoutScreen({ state, update, logs, onXP }) {
 // ─── Screen 6: Recovery ──────────────────────────────────────────
 function RecoveryScreen({ state, update }) {
   const t = useT();
-  const profile = getProfile();
-  const templates = (profile.recoveryTemplates && profile.recoveryTemplates.length > 0)
-    ? profile.recoveryTemplates
+  // Reactive: re-read profile whenever localStorage changes (e.g. after editing in ProfileModal)
+  const [profileTemplates, setProfileTemplates] = useState(() => getProfile().recoveryTemplates || []);
+  useEffect(() => {
+    const onStorage = () => setProfileTemplates(getProfile().recoveryTemplates || []);
+    window.addEventListener('storage', onStorage);
+    // Also refresh on mount and when ProfileModal closes (profile key updated)
+    const interval = setInterval(() => setProfileTemplates(getProfile().recoveryTemplates || []), 1000);
+    return () => { window.removeEventListener('storage', onStorage); clearInterval(interval); };
+  }, []);
+  const templates = profileTemplates.length > 0
+    ? profileTemplates
     : [{id:'sauna',name:'Сауна',emoji:'🔥'},{id:'massage',name:'Массаж',emoji:'💆'},{id:'pressotherapy',name:'Прессотерапия',emoji:'🦵'}];
   const recoveryItems = state.recoveryItems || {};
   const recovery = state.recovery || { notes: '' };
@@ -2317,6 +2325,12 @@ function RecoveryScreen({ state, update }) {
           <div style={{marginTop:8,fontSize:12,color:'var(--text3)'}}>{doneCount}/{templates.length} выполнено</div>
         </div>
       )}
+      <div className="card" style={{background:'rgba(168,255,62,.04)',border:'1px dashed rgba(168,255,62,.2)'}}>
+        <div style={{fontSize:12,color:'var(--text3)',textAlign:'center',lineHeight:1.6}}>
+          💡 Управляй ритуалами в
+          <span style={{color:'var(--lime)',fontWeight:600}}> Профиле → Мои ритуалы</span>
+        </div>
+      </div>
     </div>
   );
 }
