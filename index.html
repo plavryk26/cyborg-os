@@ -2804,14 +2804,16 @@ function App({ userId, initialData, onLogout }) {
         userName={profileSnap.name} avatarSrc={profileSnap.avatar} status={status}
         onExport={handleExport} exporting={exporting}/>
       <DateNav selectedDate={selectedDate} onChange={handleDateChange} logs={logs}/>
-      <FitnessRings dayData={data} profile={profileSnap}/>
-      <XPBar xp={xp}/>
-      <PhotoDiaryCard
-        photoUrl={data.photoUrl}
-        userId={userId}
-        selectedDate={selectedDate}
-        onUpload={(url) => update('photoUrl', url)}
-      />
+      {activeTab === 'sleep' && <>
+        <FitnessRings dayData={data} profile={profileSnap}/>
+        <XPBar xp={xp}/>
+        <PhotoDiaryCard
+          photoUrl={data.photoUrl}
+          userId={userId}
+          selectedDate={selectedDate}
+          onUpload={(url) => update('photoUrl', url)}
+        />
+      </>}
       <div className="screen">
         {SCREENS[activeTab]}
       </div>
