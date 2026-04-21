@@ -5,10 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="Cyborg OS" />
+  <meta name="apple-mobile-web-app-title" content="LifeOS" />
   <meta name="theme-color" content="#000000" />
-  <meta name="description" content="Cyborg OS v1.8 — fitness, habits & biohacking tracker" />
-  <title>Cyborg OS</title>
+  <meta name="description" content="LifeOS — fitness, habits & health tracker" />
+  <title>LifeOS</title>
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -18,7 +18,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <style>
     :root {
-      --pink:#FF2D78; --lime:#A8FF3E; --cyan:#00E5FF; --orange:#FF9F0A; --purple:#BF5AF2;
+      --pink:#FF375F; --lime:#30D158; --cyan:#0A84FF; --orange:#FF9F0A; --purple:#BF5AF2;
       --red:#FF453A; --green:#30D158;
       --bg:#F2F2F7; --surface:#FFF; --surface2:#F2F2F7; --surface3:#E5E5EA;
       --text:#000; --text2:#3C3C43; --text3:#8E8E93;
@@ -27,10 +27,20 @@
     }
     @media(prefers-color-scheme:dark){
       :root{
-        --bg:#000; --surface:#1C1C1E; --surface2:#2C2C2E; --surface3:#3A3A3C;
-        --text:#FFF; --text2:rgba(255,255,255,.85); --text3:rgba(255,255,255,.45);
-        --sep:rgba(255,255,255,.08); --card-shadow:0 2px 16px rgba(0,0,0,.45);
-        --toggle-bg:#3A3A3C; --nav-bg:rgba(28,28,30,.92); --header-bg:rgba(28,28,30,.92);
+        /* Background layers — true iOS dark */
+        --bg:#000000; --surface:#1C1C1E; --surface2:#2C2C2E; --surface3:#3A3A3C;
+        /* Text hierarchy — Apple HIG */
+        --text:#FFFFFF; --text2:rgba(255,255,255,.80); --text3:#8E8E93;
+        /* Structural */
+        --sep:rgba(255,255,255,.1); --card-shadow:0 1px 0 rgba(255,255,255,.05);
+        --toggle-bg:#3A3A3C; --nav-bg:rgba(28,28,30,.94); --header-bg:rgba(28,28,30,.94);
+        /* iOS system accent colors — replacing neon */
+        --cyan:#0A84FF;   /* iOS Blue */
+        --lime:#30D158;   /* iOS Green */
+        --pink:#FF375F;   /* iOS Red/Pink */
+        --purple:#BF5AF2; /* iOS Purple */
+        --orange:#FF9F0A; /* iOS Orange */
+        --teal:#5AC8FA;   /* iOS Teal */
       }
     }
     *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
@@ -39,7 +49,7 @@
     ::-webkit-scrollbar{width:0;height:0;}
     button,a,select,input,textarea{touch-action:manipulation;}
 
-    .card{background:var(--surface);border-radius:18px;padding:16px;box-shadow:var(--card-shadow);}
+    .card{background:var(--surface);border-radius:16px;padding:16px;border:1px solid rgba(255,255,255,.06);}
     .card-sm{border-radius:14px;padding:12px 14px;}
     .input{background:var(--surface2);border:1.5px solid var(--sep);border-radius:12px;padding:11px 14px;font-size:16px;font-family:inherit;color:var(--text);width:100%;outline:none;transition:border-color .2s;}
     .input:focus{border-color:var(--cyan);}
@@ -61,7 +71,7 @@
 
     .app-header{background:var(--header-bg);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);border-bottom:1px solid var(--sep);padding:12px 16px 10px;padding-top:calc(12px + env(safe-area-inset-top,0px));flex-shrink:0;z-index:50;}
     .header-row{display:flex;align-items:center;justify-content:space-between;}
-    .app-logo{font-size:19px;font-weight:800;letter-spacing:-1px;}
+    .app-logo{font-size:18px;font-weight:700;letter-spacing:-.5px;color:var(--text);}
     .bottom-nav{background:var(--nav-bg);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);border-top:1px solid var(--sep);display:flex;align-items:stretch;padding-bottom:env(safe-area-inset-bottom,4px);flex-shrink:0;z-index:100;}
     .nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:7px 4px 5px;cursor:pointer;user-select:none;-webkit-user-select:none;transition:transform .12s;gap:3px;-webkit-tap-highlight-color:transparent;}
     .nav-item:active{transform:scale(.88);}
@@ -140,7 +150,7 @@
     @keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(20px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
     @keyframes toastOut{from{opacity:1}to{opacity:0}}
 
-    .export-btn{background:linear-gradient(135deg,#FF2D78 0%,#BF5AF2 50%,#00E5FF 100%);color:#fff;font-size:16px;font-weight:700;padding:18px 24px;border-radius:18px;border:none;width:100%;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 2px 12px rgba(0,0,0,.3);transition:transform .15s,box-shadow .15s;font-family:inherit;letter-spacing:-.3px;user-select:none;-webkit-user-select:none;}
+    .export-btn{background:linear-gradient(135deg,#FF375F 0%,#BF5AF2 50%,#0A84FF 100%);color:#fff;font-size:16px;font-weight:700;padding:18px 24px;border-radius:18px;border:none;width:100%;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 2px 12px rgba(0,0,0,.3);transition:transform .15s,box-shadow .15s;font-family:inherit;letter-spacing:-.3px;user-select:none;-webkit-user-select:none;}
     .export-btn:active{transform:scale(.97);}
     .ai-btn{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,rgba(255,45,120,.15),rgba(0,229,255,.15));border:1.5px solid rgba(0,229,255,.3);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:transform .12s,background .15s;margin-left:6px;}
     .ai-btn:active{transform:scale(.88);background:linear-gradient(135deg,rgba(255,45,120,.28),rgba(0,229,255,.25));}
@@ -149,7 +159,7 @@
     .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
     .grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
 
-    .avatar-btn{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#FF2D78,#BF5AF2);display:flex;align-items:center;justify-content:center;font-size:18px;border:none;cursor:pointer;flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,.3);transition:transform .15s;overflow:hidden;}
+    .avatar-btn{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#FF375F,#BF5AF2);display:flex;align-items:center;justify-content:center;font-size:18px;border:none;cursor:pointer;flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,.3);transition:transform .15s;overflow:hidden;}
     .avatar-btn:active{transform:scale(.87);}
     .profile-screen{position:fixed;inset:0;background:var(--bg);z-index:300;display:flex;flex-direction:column;animation:slideInRight .32s cubic-bezier(.32,.72,0,1);}
     @keyframes slideInRight{from{transform:translateX(100%)}to{transform:translateX(0)}}
@@ -231,11 +241,11 @@
     /* ── Auth Screen ── */
     .auth-root{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:24px;z-index:9000;}
     .auth-card{width:100%;max-width:380px;background:var(--surface);border:1.5px solid var(--sep);border-radius:24px;padding:32px 28px;box-shadow:0 8px 40px rgba(0,0,0,.22);}
-    .auth-logo{font-size:24px;font-weight:900;letter-spacing:-1px;text-align:center;margin-bottom:4px;background:linear-gradient(135deg,var(--cyan),var(--lime));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+    .auth-logo{font-size:26px;font-weight:700;letter-spacing:-.5px;text-align:center;margin-bottom:4px;color:var(--text);}
     .auth-subtitle{font-size:11px;color:var(--text3);text-align:center;margin-bottom:32px;letter-spacing:1.5px;text-transform:uppercase;}
     .auth-input{width:100%;background:var(--surface2);border:1.5px solid var(--sep);border-radius:14px;padding:14px 16px;font-size:16px;color:var(--text);font-family:inherit;outline:none;box-sizing:border-box;transition:border-color .2s;-webkit-appearance:none;appearance:none;display:block;}
     .auth-input:focus{border-color:var(--cyan);}
-    .auth-btn{width:100%;background:linear-gradient(135deg,var(--cyan),var(--lime));border:none;border-radius:14px;padding:14px;font-size:16px;font-weight:700;color:#000;cursor:pointer;font-family:inherit;margin-top:8px;letter-spacing:.2px;transition:opacity .2s;display:block;}
+    .auth-btn{width:100%;background:var(--cyan);border:none;border-radius:14px;padding:14px;font-size:16px;font-weight:700;color:#000;cursor:pointer;font-family:inherit;margin-top:8px;letter-spacing:.2px;transition:opacity .2s;display:block;}
     .auth-btn:active{opacity:.85;} .auth-btn:disabled{opacity:.5;cursor:default;}
     .auth-toggle{text-align:center;margin-top:20px;font-size:14px;color:var(--text3);}
     .auth-toggle span{color:var(--cyan);font-weight:600;cursor:pointer;}
@@ -477,28 +487,28 @@ function computeStatus(workoutDays, t) {
 
 const BADGE_DEFS = [
   // Без курения
-  { id:'smoke_7',     emoji:'🌱', name_key:'badge_smoke_7',     desc_key:'badge_smoke_7_d',     color:'#A8FF3E', cat:'habits' },
-  { id:'smoke_21',    emoji:'🌿', name_key:'badge_smoke_21',    desc_key:'badge_smoke_21_d',    color:'#A8FF3E', cat:'habits' },
-  { id:'smoke_50',    emoji:'🫁', name_key:'badge_smoke_50',    desc_key:'badge_smoke_50_d',    color:'#A8FF3E', cat:'habits' },
-  { id:'smoke_100',   emoji:'💚', name_key:'badge_smoke_100',   desc_key:'badge_smoke_100_d',   color:'#A8FF3E', cat:'habits' },
-  { id:'smoke_365',   emoji:'🦅', name_key:'badge_smoke_365',   desc_key:'badge_smoke_365_d',   color:'#A8FF3E', cat:'habits' },
+  { id:'smoke_7',     emoji:'🌱', name_key:'badge_smoke_7',     desc_key:'badge_smoke_7_d',     color:'var(--lime)', cat:'habits' },
+  { id:'smoke_21',    emoji:'🌿', name_key:'badge_smoke_21',    desc_key:'badge_smoke_21_d',    color:'var(--lime)', cat:'habits' },
+  { id:'smoke_50',    emoji:'🫁', name_key:'badge_smoke_50',    desc_key:'badge_smoke_50_d',    color:'var(--lime)', cat:'habits' },
+  { id:'smoke_100',   emoji:'💚', name_key:'badge_smoke_100',   desc_key:'badge_smoke_100_d',   color:'var(--lime)', cat:'habits' },
+  { id:'smoke_365',   emoji:'🦅', name_key:'badge_smoke_365',   desc_key:'badge_smoke_365_d',   color:'var(--lime)', cat:'habits' },
   // Без алкоголя
-  { id:'alco_7',      emoji:'🧊', name_key:'badge_alco_7',      desc_key:'badge_alco_7_d',      color:'#00E5FF', cat:'habits' },
-  { id:'alco_30',     emoji:'💧', name_key:'badge_alco_30',     desc_key:'badge_alco_30_d',     color:'#00E5FF', cat:'habits' },
-  { id:'alco_100',    emoji:'🌊', name_key:'badge_alco_100',    desc_key:'badge_alco_100_d',    color:'#00E5FF', cat:'habits' },
-  { id:'alco_365',    emoji:'🏆', name_key:'badge_alco_365',    desc_key:'badge_alco_365_d',    color:'#00E5FF', cat:'habits' },
+  { id:'alco_7',      emoji:'🧊', name_key:'badge_alco_7',      desc_key:'badge_alco_7_d',      color:'var(--cyan)', cat:'habits' },
+  { id:'alco_30',     emoji:'💧', name_key:'badge_alco_30',     desc_key:'badge_alco_30_d',     color:'var(--cyan)', cat:'habits' },
+  { id:'alco_100',    emoji:'🌊', name_key:'badge_alco_100',    desc_key:'badge_alco_100_d',    color:'var(--cyan)', cat:'habits' },
+  { id:'alco_365',    emoji:'🏆', name_key:'badge_alco_365',    desc_key:'badge_alco_365_d',    color:'var(--cyan)', cat:'habits' },
   // Без сахара
-  { id:'sugar_7',     emoji:'🍎', name_key:'badge_sugar_7',     desc_key:'badge_sugar_7_d',     color:'#FF9F0A', cat:'habits' },
-  { id:'sugar_30',    emoji:'🥗', name_key:'badge_sugar_30',    desc_key:'badge_sugar_30_d',    color:'#FF9F0A', cat:'habits' },
+  { id:'sugar_7',     emoji:'🍎', name_key:'badge_sugar_7',     desc_key:'badge_sugar_7_d',     color:'var(--orange)', cat:'habits' },
+  { id:'sugar_30',    emoji:'🥗', name_key:'badge_sugar_30',    desc_key:'badge_sugar_30_d',    color:'var(--orange)', cat:'habits' },
   // Без кофе
-  { id:'coffee_7',    emoji:'☕', name_key:'badge_coffee_7',    desc_key:'badge_coffee_7_d',    color:'#BF5AF2', cat:'habits' },
-  { id:'coffee_30',   emoji:'🧘', name_key:'badge_coffee_30',   desc_key:'badge_coffee_30_d',   color:'#BF5AF2', cat:'habits' },
+  { id:'coffee_7',    emoji:'☕', name_key:'badge_coffee_7',    desc_key:'badge_coffee_7_d',    color:'var(--purple)', cat:'habits' },
+  { id:'coffee_30',   emoji:'🧘', name_key:'badge_coffee_30',   desc_key:'badge_coffee_30_d',   color:'var(--purple)', cat:'habits' },
   // Тренировки
-  { id:'workout_1',   emoji:'🏋️', name_key:'badge_workout_1',   desc_key:'badge_workout_1_d',   color:'#FF9F0A', cat:'fitness' },
-  { id:'workout_10',  emoji:'💪', name_key:'badge_workout_10',  desc_key:'badge_workout_10_d',  color:'#FF9F0A', cat:'fitness' },
+  { id:'workout_1',   emoji:'🏋️', name_key:'badge_workout_1',   desc_key:'badge_workout_1_d',   color:'var(--orange)', cat:'fitness' },
+  { id:'workout_10',  emoji:'💪', name_key:'badge_workout_10',  desc_key:'badge_workout_10_d',  color:'var(--orange)', cat:'fitness' },
   { id:'workout_25',  emoji:'🔥', name_key:'badge_workout_25',  desc_key:'badge_workout_25_d',  color:'#FF453A', cat:'fitness' },
   { id:'workout_50',  emoji:'⚡', name_key:'badge_workout_50',  desc_key:'badge_workout_50_d',  color:'#FF453A', cat:'fitness' },
-  { id:'workout_100', emoji:'🤖', name_key:'badge_workout_100', desc_key:'badge_workout_100_d', color:'#00E5FF', cat:'fitness' },
+  { id:'workout_100', emoji:'🤖', name_key:'badge_workout_100', desc_key:'badge_workout_100_d', color:'var(--cyan)', cat:'fitness' },
   // Стабильность (кольца)
   { id:'rings_3',     emoji:'🎯', name_key:'badge_rings_3',     desc_key:'badge_rings_3_d',     color:'#30D158', cat:'consistency' },
   { id:'rings_7',     emoji:'💎', name_key:'badge_rings_7',     desc_key:'badge_rings_7_d',     color:'#30D158', cat:'consistency' },
@@ -985,7 +995,7 @@ function useT() { return useContext(LangContext); }
 const TutorialOverlay = React.memo(function TutorialOverlay({ onComplete }) {
   const t = useT();
   const STEPS = [
-    { emoji:'🤖', title:'Cyborg OS', body:'Ваш персональный трекер биохакинга. Пройдите краткое обучение.' },
+    { emoji:'🤖', title:'LifeOS', body:'Ваш персональный трекер здоровья. Пройдите краткое обучение.' },
     { emoji:'📅', title:'История и календарь', body:'Листайте даты стрелками. Зелёная точка = есть данные.' },
     { emoji:'🍎', title:'Кольца активности', body:'🔴 Активные ккал, 🟢 Калории, 🔵 Вода — настройте цели в профиле.' },
     { emoji:'🧠', title:'Привычки и Статистика', body:'Трекайте серии без сигарет/алкоголя — найдёте в Профиле.' },
@@ -1077,7 +1087,7 @@ function AuthScreen() {
   return (
     <div className="auth-root">
       <div className="auth-card">
-        <div className="auth-logo">⧡ CYBORG OS</div>
+        <div className="auth-logo">LifeOS</div>
         <div className="auth-subtitle">Биохакинг-трекер нового поколения</div>
         {error && <div className="auth-error">{error}</div>}
         <div style={{display:'flex',flexDirection:'column',gap:12}}>
@@ -1184,7 +1194,7 @@ function AuthGate() {
   if (loading) return (
     <div className="auth-root">
       <div className="auth-card" style={{textAlign:'center'}}>
-        <div className="auth-logo">⧡ CYBORG OS</div>
+        <div className="auth-logo">LifeOS</div>
         <div className="auth-loading">Загрузка данных…</div>
       </div>
     </div>
@@ -1260,7 +1270,7 @@ function FitnessRings({ dayData, profile }) {
   const rings=[
     {label:t('nav_activity'),val:activeKcal,max:goalKcal,color:'#FF453A',valStr:activeKcal+' кк',maxStr:`из ${goalKcal} кк`},
     {label:t('nav_nutrition'),val:totalKcal,max:goalCal,color:'#30D158',valStr:totalKcal+' кк',maxStr:`из ${goalCal} кк`},
-    {label:t('nav_sleep').replace('Сон','Вода').replace('Sleep','Water').replace('Sueño','Agua').replace('Sono','Água'),val:waterL,max:goalWaterL,color:'#00E5FF',valStr:waterL.toFixed(1)+' л',maxStr:`из ${goalWaterL} л`},
+    {label:t('nav_sleep').replace('Сон','Вода').replace('Sleep','Water').replace('Sueño','Agua').replace('Sono','Água'),val:waterL,max:goalWaterL,color:'var(--cyan)',valStr:waterL.toFixed(1)+' л',maxStr:`из ${goalWaterL} л`},
   ];
   return (
     <div className="rings-widget">
@@ -1529,7 +1539,7 @@ function SettingsScreen({ settings, onSettingsChange, onLogout }) {
 
       {/* Version */}
       <div style={{ textAlign:'center', fontSize:12, color:'var(--text3)', padding:'8px 0 4px' }}>
-        Cyborg OS v1.8 · Build 2026
+        LifeOS v2.0 · Build 2026
       </div>
     </div>
   );
@@ -1618,7 +1628,7 @@ function ProfileModal({ onClose, status, habits, setHabits, logs, settings, onSe
         <div className="avatar-upload-btn" onClick={() => avatarRef.current.click()}>
           {profile.avatar
             ? <img src={profile.avatar} style={{ width:44, height:44, borderRadius:'50%', objectFit:'cover', border:'2px solid var(--sep)' }}/>
-            : <div style={{ width:44, height:44, borderRadius:'50%', background:'linear-gradient(135deg,#FF2D78,#BF5AF2)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:22 }}>🤖</div>
+            : <div style={{ width:44, height:44, borderRadius:'50%', background:'linear-gradient(135deg,var(--pink),var(--purple))', display:'flex', alignItems:'center', justifyContent:'center', fontSize:22 }}>🤖</div>
           }
           <div className="edit-badge">✏️</div>
         </div>
@@ -1811,9 +1821,7 @@ const Header = React.memo(function Header({ selectedDate, onProfileOpen, userNam
       <div className="header-row">
         <div style={{ flex:1, minWidth:0 }}>
           <div className="app-logo">
-            <span style={{ background:'linear-gradient(135deg,#FF2D78,#BF5AF2,#00E5FF)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', backgroundClip:'text' }}>
-              ⬡ CYBORG OS
-            </span>
+            LifeOS
           </div>
           <div className="header-greeting">
             <span style={{ textTransform:'capitalize' }}>
@@ -2071,7 +2079,7 @@ function NutritionScreen({ state, update, showToast, onXP }) {
         <CircleProgress value={nutrition.waterMl} max={waterGoal} color="var(--cyan)" size={88} stroke={9} label={`${(nutrition.waterMl/1000).toFixed(1)}л`} sublabel={`из ${(waterGoal/1000).toFixed(0)}л`}/>
         <div style={{flex:1}}>
           <div style={{fontSize:16,fontWeight:700,marginBottom:8}}>{t('hydration')}</div>
-          <div className="progress-bar-bg" style={{marginBottom:12}}><div className="progress-bar-fill" style={{width:`${waterPct}%`,background:'linear-gradient(90deg,#00E5FF,#0099CC)'}}/></div>
+          <div className="progress-bar-bg" style={{marginBottom:12}}><div className="progress-bar-fill" style={{width:`${waterPct}%`,background:'linear-gradient(90deg,var(--cyan),var(--teal))'}}/></div>
           <button className="btn btn-primary btn-full" style={{fontSize:14}} onClick={addWater}>{t('add_water')}</button>
         </div>
       </div>
@@ -2342,16 +2350,16 @@ function HabitsScreen({ habits, setHabits, showToast }) {
   const [pendingOffset, setPendingOffset] = useState('0');
   const getH = k => ({ active:false, startDate:null, streakDays:0, offset:0, ...(habits[k]||{}) });
   const HABITS_CONFIG = [
-    { key:'noSmoking', label:t('no_smoking'), emoji:'🚭', color:'#A8FF3E',
+    { key:'noSmoking', label:t('no_smoking'), emoji:'🚭', color:'var(--lime)',
       milestones:[{days:7,label:'1 нед.'},{days:21,label:'21 дн.'},{days:50,label:'50 дн.'},{days:100,label:'100 дн.'},{days:365,label:'1 год'}],
       counterLabel:t('smoke_days') },
-    { key:'noAlcohol', label:t('no_alcohol'), emoji:'🍷', color:'#00E5FF',
+    { key:'noAlcohol', label:t('no_alcohol'), emoji:'🍷', color:'var(--cyan)',
       milestones:[{days:7,label:'1 нед.'},{days:30,label:'1 мес.'},{days:100,label:'100 дн.'},{days:365,label:'1 год'}],
       counterLabel:t('alcohol_days') },
-    { key:'noSugar',   label:t('no_sugar'),   emoji:'🍬', color:'#FF9F0A',
+    { key:'noSugar',   label:t('no_sugar'),   emoji:'🍬', color:'var(--orange)',
       milestones:[{days:7,label:'1 нед.'},{days:30,label:'1 мес.'},{days:100,label:'100 дн.'}],
       counterLabel:t('sugar_days') },
-    { key:'noCoffee',  label:t('no_coffee'),  emoji:'☕', color:'#BF5AF2',
+    { key:'noCoffee',  label:t('no_coffee'),  emoji:'☕', color:'var(--purple)',
       milestones:[{days:7,label:'1 нед.'},{days:30,label:'1 мес.'},{days:100,label:'100 дн.'}],
       counterLabel:t('coffee_days') },
   ];
@@ -2604,13 +2612,13 @@ function StatsScreen({ logs, habits, showToast, xp = 0 }) {
         <div style={{display:'flex',justifyContent:'space-around',gap:12}}>
           <div style={{textAlign:'center',flex:1}}><div style={{fontSize:30,fontWeight:900,color:'var(--lime)',letterSpacing:'-1px'}}>{totalCount}</div><div style={{fontSize:11,color:'var(--text3)',marginTop:2}}>{t('total_workouts')}</div></div>
           <div style={{width:1,background:'var(--sep)'}}/>
-          <div style={{textAlign:'center',flex:1}}><div style={{fontSize:30,fontWeight:900,color:'#A8FF3E',letterSpacing:'-1px'}}>{smokeDays}</div><div style={{fontSize:11,color:'var(--text3)',marginTop:2}}>{t('smoke_days')}</div></div>
+          <div style={{textAlign:'center',flex:1}}><div style={{fontSize:30,fontWeight:900,color:'var(--lime)',letterSpacing:'-1px'}}>{smokeDays}</div><div style={{fontSize:11,color:'var(--text3)',marginTop:2}}>{t('smoke_days')}</div></div>
           <div style={{width:1,background:'var(--sep)'}}/>
           <div style={{textAlign:'center',flex:1}}><div style={{fontSize:30,fontWeight:900,color:'var(--cyan)',letterSpacing:'-1px'}}>{alcoholDays}</div><div style={{fontSize:11,color:'var(--text3)',marginTop:2}}>{t('alcohol_days')}</div></div>
           </div>
           <div style={{display:'flex',gap:16,justifyContent:'center',marginTop:12}}>
-            <div style={{textAlign:'center',flex:1}}><div style={{fontSize:30,fontWeight:900,color:'#FF9F0A',letterSpacing:'-1px'}}>{sugarDays}</div><div style={{fontSize:11,color:'var(--text3)',marginTop:2}}>{t('sugar_days')}</div></div>
-            <div style={{textAlign:'center',flex:1}}><div style={{fontSize:30,fontWeight:900,color:'#BF5AF2',letterSpacing:'-1px'}}>{coffeeDays}</div><div style={{fontSize:11,color:'var(--text3)',marginTop:2}}>{t('coffee_days')}</div></div>
+            <div style={{textAlign:'center',flex:1}}><div style={{fontSize:30,fontWeight:900,color:'var(--orange)',letterSpacing:'-1px'}}>{sugarDays}</div><div style={{fontSize:11,color:'var(--text3)',marginTop:2}}>{t('sugar_days')}</div></div>
+            <div style={{textAlign:'center',flex:1}}><div style={{fontSize:30,fontWeight:900,color:'var(--purple)',letterSpacing:'-1px'}}>{coffeeDays}</div><div style={{fontSize:11,color:'var(--text3)',marginTop:2}}>{t('coffee_days')}</div></div>
         </div>
       </div>
       {validW.length>=2&&(
@@ -2654,7 +2662,7 @@ function generateLog(state, profile) {
   const c=state.workout.cardio;
   const cardioLines=Object.values(c).some(v=>v)?`  ${c.machine||'—'} | Угол:${c.angle||'—'} | ${c.speed||'—'}\n  ${c.duration||'—'} мин | ${c.distance||'—'} км`:'  — не выполнялось';
   const exLines=state.workout.exercises.length?state.workout.exercises.map(ex=>`  ▸ ${ex.name}\n${ex.sets.map((s,i)=>`      Подход ${i+1}: ${s.weight||'?'}кг × ${s.reps||'?'} повт.${s.dropset?' [DROP]':''}`).join('\n')||'      — нет подходов'}`).join('\n'):'  — не выполнялось';
-  return`╔══════════════════════════════════════════════╗\n║        CYBORG OS v1.8 — ДНЕВНОЙ ЛОГ         ║\n╚══════════════════════════════════════════════╝\n\n📅 ${dateStr.toUpperCase()}\n👤 ${profile.name||'—'} | ${profile.age||'—'} лет | ${profile.height||'—'} см | Цель: ${profile.goal||'—'}\n🏆 Всего тренировок: ${totalWorkouts}\n\n🧠 ПРИВЫЧКИ\n  🚬 Без курения:  ${habits.noSmoking.active?`${smokeDays} дн. (активно)`:'—'}\n  🍷 Без алкоголя: ${habits.noAlcohol.active?`${alcoholDays} дн. (активно)`:'—'}\n\n🌙 СОН\n  ${state.sleep.hours}ч | ${stars} | ЦНС ${state.energy}/10 | Готовность ${readiness}%\n\n⚡ АКТИВНОСТЬ\n  ${state.activity.activeKcal||'—'} кк активных | ЧСС ${state.activity.avgHR||'—'} | Вес ${state.weight||'—'} кг\n\n💊 БАДЫ\n${suppLines}\n\n🥗 ПИТАНИЕ\n  Вода: ${(state.nutrition.waterMl/1000).toFixed(2)}л\n${mealLines}\n  ИТОГО: ${totals.kcal} кк | Б:${totals.protein}г Ж:${totals.fat}г У:${totals.carbs}г\n  БАЛАНС: ${balance>0?'+':''}${balance} кк\n\n💪 ТРЕНИРОВКА\n  Кардио:\n${cardioLines}\n  Силовая:\n${exLines}\n\n🔄 ВОССТАНОВЛЕНИЕ\n  ${Object.entries(state.recoveryItems||{}).filter(([,v])=>v).map(([k])=>k).join(', ')||'—'}\n  Заметки: ${state.recovery?.notes||'—'}\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nCyborg OS v1.8 | ${new Date().toLocaleString('ru-RU')}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
+  return`╔══════════════════════════════════════════════╗\n║           LifeOS — ДНЕВНОЙ ЛОГ              ║\n╚══════════════════════════════════════════════╝\n\n📅 ${dateStr.toUpperCase()}\n👤 ${profile.name||'—'} | ${profile.age||'—'} лет | ${profile.height||'—'} см | Цель: ${profile.goal||'—'}\n🏆 Всего тренировок: ${totalWorkouts}\n\n🧠 ПРИВЫЧКИ\n  🚬 Без курения:  ${habits.noSmoking.active?`${smokeDays} дн. (активно)`:'—'}\n  🍷 Без алкоголя: ${habits.noAlcohol.active?`${alcoholDays} дн. (активно)`:'—'}\n\n🌙 СОН\n  ${state.sleep.hours}ч | ${stars} | ЦНС ${state.energy}/10 | Готовность ${readiness}%\n\n⚡ АКТИВНОСТЬ\n  ${state.activity.activeKcal||'—'} кк активных | ЧСС ${state.activity.avgHR||'—'} | Вес ${state.weight||'—'} кг\n\n💊 БАДЫ\n${suppLines}\n\n🥗 ПИТАНИЕ\n  Вода: ${(state.nutrition.waterMl/1000).toFixed(2)}л\n${mealLines}\n  ИТОГО: ${totals.kcal} кк | Б:${totals.protein}г Ж:${totals.fat}г У:${totals.carbs}г\n  БАЛАНС: ${balance>0?'+':''}${balance} кк\n\n💪 ТРЕНИРОВКА\n  Кардио:\n${cardioLines}\n  Силовая:\n${exLines}\n\n🔄 ВОССТАНОВЛЕНИЕ\n  ${Object.entries(state.recoveryItems||{}).filter(([,v])=>v).map(([k])=>k).join(', ')||'—'}\n  Заметки: ${state.recovery?.notes||'—'}\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nLifeOS v2.0 | ${new Date().toLocaleString('ru-RU')}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
 }
 
 function useExportLog(state, showToast) {
